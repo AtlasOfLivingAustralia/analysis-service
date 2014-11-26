@@ -15,7 +15,7 @@ mkdir $PTH/process/density/$DATE/
 
 echo $DATE > $PTH/process/density/$DATE/build.log
 
-java -Xmx20000m -cp /usr/local/tomcat/instance_00_alaspatial/webapps/alaspatial/WEB-INF/classes/.:/usr/local/tomcat/instance_00_alaspatial/webapps/alaspatial/WEB-INF/lib/* org.ala.spatial.analysis.layers.DensityLayers "http://biocache.ala.org.au/ws" "$PTH/process/density/$DATE/" 9 "-180,-90,180,90" 0.01 6 >> $PTH/process/density/$DATE/build.log
+java -Xmx20000m -cp /usr/local/tomcat/instance_00_alaspatial/webapps/alaspatial/WEB-INF/classes/.:/usr/local/tomcat/instance_00_alaspatial/webapps/alaspatial/WEB-INF/lib/* DensityLayers "http://biocache.ala.org.au/ws" "$PTH/process/density/$DATE/" 9 "-180,-90,180,90" 0.01 6 >> $PTH/process/density/$DATE/build.log
 
 if [ -f "$PTH/process/density/$DATE/_species_density_av_9x9_001.grd" ]
 then

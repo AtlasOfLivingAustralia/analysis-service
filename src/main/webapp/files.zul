@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <zk xmlns="http://www.zkoss.org/2005/zul">
-    <window id="winfiles" apply="org.ala.spatial.web.zk.FilesZK" title="Files"
+    <window id="winfiles" apply="au.org.ala.spatial.web.zk.FilesZK" title="Files"
         width="100%" border="normal">
 
         <label id="lblmsg" value="Please select a file to upload" />

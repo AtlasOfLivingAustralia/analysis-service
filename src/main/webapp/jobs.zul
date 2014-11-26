@@ -1,6 +1,6 @@
 
 <zk>
-    <window id="win" apply="org.ala.spatial.web.zk.JobsZK"
+    <window id="win" apply="au.org.ala.spatial.web.zk.JobsZK"
 title="Admin" width="100%" border="normal">
         <tabbox width="100%">
             <tabs>

@@ -22,7 +22,7 @@ mv *.txt $OUTPUTDIR
 
 # generate ASCII grid and DIVA grid
 echo "generating grid files" 1>> $OUTPUTDIR/build.log
-java -Xmx8G -cp ${JAVA_CLASSPATH} org.ala.spatial.analysis.layers.SpeciesRichnessLayerGenerator 0.1 $OUTPUTDIR/cell-species-lists-0.1-degree.txt $OUTPUTDIR srichness 1>> $OUTPUTDIR/build.log 2>&1
+java -Xmx8G -cp ${JAVA_CLASSPATH} SpeciesRichnessLayerGenerator 0.1 $OUTPUTDIR/cell-species-lists-0.1-degree.txt $OUTPUTDIR srichness 1>> $OUTPUTDIR/build.log 2>&1
 
 
 cp $OUTPUTDIR/srichness.gr* $PTH/ready/diva 1>> $OUTPUTDIR/build.log 2>&1
@@ -42,7 +42,7 @@ chown tomcat:wheel $PTH/ready/geotiff/* 1>> $OUTPUTDIR/build.log 2>&1
 
 # Generate legend
 echo "generating legend" >> $OUTPUTDIR/build.log
-java -Xmx8G -cp ${JAVA_CLASSPATH} org.ala.layers.legend.GridLegend $PTH/ready/diva/srichness $PTH/test/srichness 8 1 1>> $OUTPUTDIR/build.log 2>&1
+java -Xmx8G -cp ${JAVA_CLASSPATH} GridLegend $PTH/ready/diva/srichness $PTH/test/srichness 8 1 1>> $OUTPUTDIR/build.log 2>&1
 
 # Upload to geoserver
 echo "uploading to geoserver" 1>> $OUTPUTDIR/build.log
