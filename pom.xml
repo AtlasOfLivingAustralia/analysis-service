@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+        <parent>
+            <groupId>au.org.ala</groupId>
+            <artifactId>ala-parent-pom</artifactId>
+            <version>1.0</version>
+        </parent>
+
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>au.org.ala</groupId>
 	<artifactId>ala-spatial</artifactId>
@@ -13,19 +20,6 @@
     <scm>
         <developerConnection>scm:svn:https://alageospatialportal.googlecode.com/svn/trunk/alaspatial/</developerConnection>
     </scm>
-
-    <distributionManagement>
-        <repository>
-            <id>ala-repo</id>
-            <name>Internal Releases</name>
-            <url>http://nexus.ala.org.au/content/repositories/releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>ala-repo</id>
-            <name>Internal Releases</name>
-            <url>http://nexus.ala.org.au/content/repositories/snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
 
 	<properties>
 		<org.springframework.version>3.0.6.RELEASE</org.springframework.version>
@@ -323,41 +317,6 @@
 			<type>jar</type>
 		</dependency>
     </dependencies>
-	<repositories>
-        <!-- ALA repository -->
-        <repository>
-            <id>ala-repo-snapshots</id>
-            <name>ala-repo</name>
-            <url>http://nexus.ala.org.au/content/repositories/snapshots/</url>
-        </repository>
-        <repository>
-            <id>ala-repo-releases</id>
-            <name>ala-repo-releases</name>
-            <url>http://nexus.ala.org.au/content/repositories/releases/</url>
-        </repository>
-        <repository>
-            <id>ala-repo-legacy</id>
-            <name>ala-repo-legacy</name>
-            <url>http://maven.ala.org.au/repository/</url>
-        </repository>
-        <!-- For JSR 303 and Hibernate Validator only - Encourage JBoss to publish
-            these artifacts to Maven Central! -->
-		<repository>
-			<id>org.jboss.repository.maven</id>
-			<url>http://repository.jboss.org/</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>Hibernate Spatial repo</id>
-			<url>http://www.hibernatespatial.org/repository</url>
-		</repository>
-		<repository>
-			<id>opengeo</id>
-			<url>http://download.osgeo.org/webdav/geotools/</url>
-		</repository>
-	</repositories>
 	<build>
 		<plugins>
 			<plugin>
