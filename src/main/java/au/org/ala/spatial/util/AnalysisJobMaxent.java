@@ -127,7 +127,7 @@ public class AnalysisJobMaxent extends AnalysisJob {
             br.close();
             FileUtils.deleteQuietly(speciesqueryfile);
             OccurrenceData od = new OccurrenceData();
-            String[] s = od.getSpeciesData(speciesq, bs, null);
+            String[] s = od.getSpeciesData(speciesq, bs, null, null);
 
             if (s[0] == null) {
                 //error, no species
