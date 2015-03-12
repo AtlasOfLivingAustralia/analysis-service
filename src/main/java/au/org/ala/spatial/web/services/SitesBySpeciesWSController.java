@@ -15,7 +15,7 @@ package au.org.ala.spatial.web.services;
 
 import au.org.ala.layers.intersect.SimpleRegion;
 import au.org.ala.layers.intersect.SimpleShapeFile;
-import au.org.ala.spatial.analysis.index.LayerFilter;
+import au.org.ala.layers.util.LayerFilter;
 import au.org.ala.spatial.util.AlaspatialProperties;
 import au.org.ala.spatial.util.AnalysisJobSitesBySpecies;
 import au.org.ala.spatial.util.AnalysisQueue;

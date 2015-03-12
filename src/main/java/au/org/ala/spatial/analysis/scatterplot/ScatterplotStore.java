@@ -18,20 +18,17 @@ import java.util.Map;
  */
 public class ScatterplotStore {
 
+    static final int MAX_SIZE = 500;
+    final static String TEMP_FILE_PATH = System.getProperty("java.io.tmpdir");
+    /**
+     * store for ID and {last access time (Long) , cluster (Vector) }
+     */
+    static HashMap<String, Object[]> selections = new HashMap<String, Object[]>();
     /**
      * @author Adam
      */
 
     private static Logger logger = Logger.getLogger(ScatterplotStore.class);
-
-
-    static final int MAX_SIZE = 500;
-    final static String TEMP_FILE_PATH = System.getProperty("java.io.tmpdir");
-
-    /**
-     * store for ID and {last access time (Long) , cluster (Vector) }
-     */
-    static HashMap<String, Object[]> selections = new HashMap<String, Object[]>();
 
     public static void addData(String id, Scatterplot data) {
         Object[] o = selections.get(id);

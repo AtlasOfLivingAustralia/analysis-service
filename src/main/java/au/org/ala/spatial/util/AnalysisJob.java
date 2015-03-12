@@ -13,9 +13,14 @@
  */
 package au.org.ala.spatial.util;
 
+import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
+
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Parent class for analysis jobs.
@@ -23,13 +28,12 @@ import java.util.Calendar;
  * @author Adam
  */
 public class AnalysisJob extends Thread implements Serializable {
-    private final String DATE_FORMAT_NOW = "dd-MM-yyyy HH:mm:ss";
     public final static String WAITING = "WAITING";
     public final static String RUNNING = "RUNNING";
     public final static String SUCCESSFUL = "SUCCESSFUL";
     public final static String FAILED = "FAILED";
     public final static String CANCELLED = "CANCELLED";
-
+    private final String DATE_FORMAT_NOW = "dd-MM-yyyy HH:mm:ss";
     Double progress;            //progress 0 to 1
     long progressTime;          //time of last set progress
     int stage;                  //for use by extended classes
@@ -49,6 +53,24 @@ public class AnalysisJob extends Thread implements Serializable {
         progress = new Double(0);
         message = "";
         setCurrentState(WAITING);
+    }
+
+    public static void main(String[] args) {
+        List<Map<String, String>> results = null;
+        final String url = "http://bie.ala.org.au/ws/species/guids/bulklookup.json";
+        try {
+            //String jsonString="";
+            String[] list = new String[]{
+                    "urn:lsid:biodiversity.org.au:apni.taxon:306711",
+                    "Grallina cyanoleuca|urn:lsid:biodiversity.org.au:afd.taxon:8f51b1e4-44c3-4a4c-9a25-a54d6a345ceb|Magpie-lark|ANIMALIA|MONARCHIDAE",
+                    "||||"};
+            RestOperations restTemplate = new RestTemplate();
+            Map searchDTOList = restTemplate.postForObject(url, list, Map.class);
+            //System.out.println(test);
+            results = (List<Map<String, String>>) searchDTOList.get("searchDTOList");
+        } catch (Exception ex) {
+        }
+
     }
 
     public long smoothEstimate(long nextEstimate) {

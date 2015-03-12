@@ -13,8 +13,9 @@
  */
 package au.org.ala.spatial.util;
 
+import au.org.ala.layers.grid.GridCutter;
 import au.org.ala.layers.intersect.SimpleRegion;
-import au.org.ala.spatial.analysis.index.LayerFilter;
+import au.org.ala.layers.util.LayerFilter;
 import au.org.ala.spatial.analysis.service.AlocServiceImpl;
 import au.org.ala.spatial.analysis.service.AlocSettings;
 
@@ -30,6 +31,7 @@ import java.util.Arrays;
  */
 public class AnalysisJobAloc extends AnalysisJob {
 
+    public String area;
     Layer[] layers;
     int numberOfGroups;
     SimpleRegion region;
@@ -39,7 +41,6 @@ public class AnalysisJobAloc extends AnalysisJob {
     String currentPath;
     int cells;
     long[] stageTimes;
-    public String area;
     String envlist;
     int layerCount;
     String resolution;

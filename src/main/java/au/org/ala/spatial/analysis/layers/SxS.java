@@ -36,12 +36,12 @@ public class SxS {
         this.status = status;
     }
 
-    public void setAnalysisId(String analysisId) {
-        this.analysisId = analysisId;
-    }
-
     public String getAnalysisId() {
         return analysisId;
+    }
+
+    public void setAnalysisId(String analysisId) {
+        this.analysisId = analysisId;
     }
 
     public String getValue() {

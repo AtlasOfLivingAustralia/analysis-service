@@ -55,36 +55,24 @@ public class SitesBySpecies {
         height = (int) Math.ceil((bbox[3] - bbox[1]) / resolution);
     }
 
-    /**
-     * @param resolution
-     */
-    void setResolution(double resolution) {
-        this.resolution = resolution;
-        width = (int) Math.ceil((bbox[2] - bbox[0]) / resolution);
-        height = (int) Math.ceil((bbox[3] - bbox[1]) / resolution);
-    }
-
-    /**
-     * @param bbox
-     */
-    void setBBox(double[] bbox) {
-        this.bbox = bbox;
-        width = (int) Math.ceil((bbox[2] - bbox[0]) / resolution);
-        height = (int) Math.ceil((bbox[3] - bbox[1]) / resolution);
-    }
-
     public static void main(String[] args) {
 
 
         try {
             SimpleRegion sr = SimpleShapeFile.parseWKT("POLYGON((110.0 -45.0,165.0 -45.0,165.0 -10.0,110.0 -10.0,110.0 -45.0))");
-            Records r = new Records("/data/sxs.records");
-
-            String outputDir = "/data/sxs/";
-
-            double resolution = 1;
+            //Records r = new Records("/data/sxs.records");
             double[] bbox = {110, -45, 165, -10};
 
+            //fetch and merge records
+            File joinedRecords = new File("/data/joinedRecords");
+            StringBuilder sb = new StringBuilder();
+            String file = "/data/sxs.records";
+            Records r = new Records("http://biocache.ala.org.au/ws",
+                    "Macropus%20agilis", bbox, file, null);
+
+            String outputDir = "/data/";
+
+            double resolution = 1;
 
             //update bbox with spatial extent of records
             double minx = 180, miny = 90, maxx = -180, maxy = -90;
@@ -114,6 +102,24 @@ public class SitesBySpecies {
         }
 
 
+    }
+
+    /**
+     * @param resolution
+     */
+    void setResolution(double resolution) {
+        this.resolution = resolution;
+        width = (int) Math.ceil((bbox[2] - bbox[0]) / resolution);
+        height = (int) Math.ceil((bbox[3] - bbox[1]) / resolution);
+    }
+
+    /**
+     * @param bbox
+     */
+    void setBBox(double[] bbox) {
+        this.bbox = bbox;
+        width = (int) Math.ceil((bbox[2] - bbox[0]) / resolution);
+        height = (int) Math.ceil((bbox[3] - bbox[1]) / resolution);
     }
 
     /**
@@ -187,7 +193,7 @@ public class SitesBySpecies {
                         totalSpeciesCounts[n] += bsRows[0][i][n];
                     }
 
-                    if (sum >= 0) {
+                    if (sum > 0) {
                         fw.append("\n\"");
                         fw.append(String.valueOf(i * resolution + bbox[0]));
                         fw.append("_");
@@ -206,6 +212,7 @@ public class SitesBySpecies {
                 }
             }
         }
+        fw.flush();
         fw.close();
 
         //remove columns without species
@@ -239,6 +246,7 @@ public class SitesBySpecies {
             row++;
         }
         r.close();
+        fw.flush();
         fw.close();
 
         new File(outputDirectory + "fullSitesBySpecies.csv").delete();

@@ -13,6 +13,11 @@ import java.util.List;
 
 public class SpeciesRichnessLayerGenerator extends CalculatedLayerGenerator {
 
+    public SpeciesRichnessLayerGenerator(BigDecimal resolution, File cellSpeciesFile) throws IOException {
+        super(resolution);
+        readCellSpeciesLists(cellSpeciesFile);
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("args[0]=Resolution in degrees, e.g. 0.1 for 0.1 by 0.1 degree cells\n"
@@ -28,11 +33,6 @@ public class SpeciesRichnessLayerGenerator extends CalculatedLayerGenerator {
         String outputFileNamePrefix = args[3];
 
         new SpeciesRichnessLayerGenerator(resolution, cellSpeciesFile).writeGrid(outputFileDirectory, outputFileNamePrefix);
-    }
-
-    public SpeciesRichnessLayerGenerator(BigDecimal resolution, File cellSpeciesFile) throws IOException {
-        super(resolution);
-        readCellSpeciesLists(cellSpeciesFile);
     }
 
     @Override

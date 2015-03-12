@@ -13,6 +13,12 @@ import java.util.List;
 
 public class EndemismLayerGenerator extends CalculatedLayerGenerator {
 
+    public EndemismLayerGenerator(BigDecimal resolution, File speciesCellCountFile, File cellSpeciesFile) throws IOException {
+        super(resolution);
+        readSpeciesCellCounts(speciesCellCountFile);
+        readCellSpeciesLists(cellSpeciesFile);
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("args[0]=Resolution in degrees, e.g. 0.1 for 0.1 by 0.1 degree cells\n"
@@ -31,12 +37,6 @@ public class EndemismLayerGenerator extends CalculatedLayerGenerator {
         String outputFileNamePrefix = args[4];
 
         new EndemismLayerGenerator(resolution, speciesCellCountFile, cellSpeciesFile).writeGrid(outputFileDirectory, outputFileNamePrefix);
-    }
-
-    public EndemismLayerGenerator(BigDecimal resolution, File speciesCellCountFile, File cellSpeciesFile) throws IOException {
-        super(resolution);
-        readSpeciesCellCounts(speciesCellCountFile);
-        readCellSpeciesLists(cellSpeciesFile);
     }
 
     @Override

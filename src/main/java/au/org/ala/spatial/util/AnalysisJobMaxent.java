@@ -16,9 +16,10 @@ package au.org.ala.spatial.util;
 import au.org.ala.layers.client.Client;
 import au.org.ala.layers.dao.LayerDAO;
 import au.org.ala.layers.dto.Layer;
+import au.org.ala.layers.grid.GridCutter;
 import au.org.ala.layers.intersect.Grid;
 import au.org.ala.layers.intersect.SimpleRegion;
-import au.org.ala.spatial.analysis.index.LayerFilter;
+import au.org.ala.layers.util.LayerFilter;
 import au.org.ala.spatial.analysis.maxent.MaxentServiceImpl;
 import au.org.ala.spatial.analysis.maxent.MaxentSettings;
 import org.apache.commons.io.FileUtils;
@@ -83,6 +84,26 @@ public class AnalysisJobMaxent extends AnalysisJob {
         stageTimes = new long[4];
         setStage(0);
         setProgress(0);
+    }
+
+    static public void readReplace(String fname, String oldPattern, String replPattern) {
+        String line;
+        StringBuffer sb = new StringBuffer();
+        try {
+            FileInputStream fis = new FileInputStream(fname);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+            while ((line = reader.readLine()) != null) {
+                line = line.replaceAll(oldPattern, replPattern);
+                sb.append(line + "\n");
+            }
+            reader.close();
+            BufferedWriter out = new BufferedWriter(new FileWriter(fname));
+            out.write(sb.toString());
+            out.close();
+        } catch (Throwable e) {
+            System.err.println("*** exception ***");
+            e.printStackTrace(System.out);
+        }
     }
 
     @Override
@@ -409,18 +430,6 @@ public class AnalysisJobMaxent extends AnalysisJob {
     }
 
     @Override
-    public void setProgress(double d) {
-        if (stage == 0) { //data load; 0 to 0.2
-            progress = d / 5.0;
-        } else if (stage == 1) { //running; 0.2 to 0.9
-            progress = 0.2 + 10 * d / 7.0;
-        } else { //exporting/done
-            progress = 0.9 + d / 10.0;
-        }
-        super.setProgress(progress);
-    }
-
-    @Override
     public double getProgress() {
         //return expected progress since cannot track internals
 
@@ -478,6 +487,18 @@ public class AnalysisJobMaxent extends AnalysisJob {
     }
 
     @Override
+    public void setProgress(double d) {
+        if (stage == 0) { //data load; 0 to 0.2
+            progress = d / 5.0;
+        } else if (stage == 1) { //running; 0.2 to 0.9
+            progress = 0.2 + 10 * d / 7.0;
+        } else { //exporting/done
+            progress = 0.9 + d / 10.0;
+        }
+        super.setProgress(progress);
+    }
+
+    @Override
     public String getStatus() {
         if (getProgress() < 1) {
             String msg;
@@ -520,26 +541,6 @@ public class AnalysisJobMaxent extends AnalysisJob {
         sb.append("; number of layers=").append(envnameslist.length);
 
         return sb.toString();
-    }
-
-    static public void readReplace(String fname, String oldPattern, String replPattern) {
-        String line;
-        StringBuffer sb = new StringBuffer();
-        try {
-            FileInputStream fis = new FileInputStream(fname);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
-            while ((line = reader.readLine()) != null) {
-                line = line.replaceAll(oldPattern, replPattern);
-                sb.append(line + "\n");
-            }
-            reader.close();
-            BufferedWriter out = new BufferedWriter(new FileWriter(fname));
-            out.write(sb.toString());
-            out.close();
-        } catch (Throwable e) {
-            System.err.println("*** exception ***");
-            e.printStackTrace(System.out);
-        }
     }
 
     public void readReplaceBetween(String fname, String startOldText, String endOldText, String replText) {

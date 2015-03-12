@@ -13,11 +13,12 @@
  */
 package au.org.ala.spatial.util;
 
+import au.org.ala.layers.grid.GridCutter;
 import au.org.ala.layers.intersect.Grid;
 import au.org.ala.layers.intersect.SimpleRegion;
 import au.org.ala.layers.legend.Legend;
 import au.org.ala.layers.legend.LegendEqualArea;
-import au.org.ala.spatial.analysis.index.LayerFilter;
+import au.org.ala.layers.util.LayerFilter;
 import au.org.ala.spatial.analysis.layers.*;
 
 import java.io.File;
@@ -99,7 +100,7 @@ public class AnalysisJobSitesBySpecies extends AnalysisJob {
                 records = new LayersServiceRecords(biocacheserviceurl, speciesq, bbox, null, region);
             } else {
                 records = new Records(biocacheserviceurl,
-                        speciesq, bbox, "/data/sxs.records" + getId(), region);
+                        speciesq, bbox, null, region);
             }
 
             //update bbox with spatial extent of records
@@ -147,7 +148,7 @@ public class AnalysisJobSitesBySpecies extends AnalysisJob {
             String envelopeFile = AlaspatialProperties.getAnalysisWorkingDir() + "envelope_" + getName();
             Grid envelopeGrid = null;
             if (envelope != null) {
-                GridCutter.makeEnvelope(envelopeFile, AlaspatialProperties.getLayerResolutionDefault(), envelope);
+                GridCutter.makeEnvelope(envelopeFile, AlaspatialProperties.getLayerResolutionDefault(), envelope, AlaspatialProperties.getAnalysisLimitGridCells());
                 envelopeGrid = new Grid(envelopeFile);
             }
 
@@ -289,18 +290,6 @@ public class AnalysisJobSitesBySpecies extends AnalysisJob {
     }
 
     @Override
-    public void setProgress(double d) {
-        if (stage == 0) { //data load; 0 to 0.2
-            progress = d / 5.0;
-        } else if (stage == 1) { //running; 0.2 to 0.9
-            progress = 0.2 + 10 * d / 7.0;
-        } else { //exporting/done
-            progress = 0.9 + d / 10.0;
-        }
-        super.setProgress(progress);
-    }
-
-    @Override
     public double getProgress() {
         //return expected progress since cannot track internals
 
@@ -341,6 +330,18 @@ public class AnalysisJobSitesBySpecies extends AnalysisJob {
         }
 
         return d1 + d2;
+    }
+
+    @Override
+    public void setProgress(double d) {
+        if (stage == 0) { //data load; 0 to 0.2
+            progress = d / 5.0;
+        } else if (stage == 1) { //running; 0.2 to 0.9
+            progress = 0.2 + 10 * d / 7.0;
+        } else { //exporting/done
+            progress = 0.9 + d / 10.0;
+        }
+        super.setProgress(progress);
     }
 
     @Override

@@ -239,6 +239,10 @@ public class ScatterplotDTO implements Serializable {
         return layers;
     }
 
+    public void setLayers(String layers) {
+        this.layers = layers.split(":");
+    }
+
     public String[] getLayernames() {
         return layernames;
     }
@@ -251,9 +255,5 @@ public class ScatterplotDTO implements Serializable {
         } catch (Exception e) {
             logger.error("failed to read layernames to string as CSV: " + layernames, e);
         }
-    }
-
-    public void setLayers(String layers) {
-        this.layers = layers.split(":");
     }
 }

@@ -12,6 +12,11 @@ import java.nio.ByteOrder;
 
 public class OccurrenceDensityLayerGenerator extends CalculatedLayerGenerator {
 
+    public OccurrenceDensityLayerGenerator(BigDecimal resolution, File cellOccurrenceCountsFile) throws IOException {
+        super(resolution);
+        readCellOccurrenceCounts(cellOccurrenceCountsFile);
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("args[0]=Resolution in degrees, e.g. 0.1 for 0.1 by 0.1 degree cells\n"
@@ -29,12 +34,6 @@ public class OccurrenceDensityLayerGenerator extends CalculatedLayerGenerator {
 
         new OccurrenceDensityLayerGenerator(resolution, cellOccurrenceCountsFile).writeGrid(outputFileDirectory, outputFileNamePrefix);
     }
-
-    public OccurrenceDensityLayerGenerator(BigDecimal resolution, File cellOccurrenceCountsFile) throws IOException {
-        super(resolution);
-        readCellOccurrenceCounts(cellOccurrenceCountsFile);
-    }
-
 
     @Override
     protected float handleCell(Pair<BigDecimal, BigDecimal> coordPair, float maxValue, PrintWriter ascPrintWriter, BufferedOutputStream divaOutputStream) throws IOException {

@@ -14,8 +14,9 @@
 package au.org.ala.spatial.web.services;
 
 import au.org.ala.layers.grid.Grid2Shape;
+import au.org.ala.layers.grid.GridCutter;
 import au.org.ala.layers.intersect.Grid;
-import au.org.ala.spatial.analysis.index.LayerFilter;
+import au.org.ala.layers.util.LayerFilter;
 import au.org.ala.spatial.util.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,7 +69,7 @@ public class EnvelopeWSController {
             File grid = new File(dir.getPath() + File.separator + "envelope");
 
             double areaSqKm = -1;
-            if ((areaSqKm = GridCutter.makeEnvelope(grid.getPath(), resolution, filter)) >= 0) {
+            if ((areaSqKm = GridCutter.makeEnvelope(grid.getPath(), resolution, filter, AlaspatialProperties.getAnalysisLimitGridCells())) >= 0) {
 
                 SpatialTransformer.convertDivaToAsc(dir.getPath() + File.separator + "envelope", dir.getPath() + File.separator + "envelope.asc");
                 CoordinateTransformer.generate4326prj(dir.getPath() + File.separator, "envelope");

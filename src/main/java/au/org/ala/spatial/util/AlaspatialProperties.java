@@ -28,13 +28,12 @@ import java.util.Properties;
  * @author Adam
  */
 public class AlaspatialProperties {
-    private static Logger logger = Logger.getLogger(AlaspatialProperties.class);
+    private static final Logger logger = Logger.getLogger(AlaspatialProperties.class);
 
     /**
      * Properties object.
      */
     static Properties properties;
-
     // read in properties file.
     static {
         properties = new Properties();

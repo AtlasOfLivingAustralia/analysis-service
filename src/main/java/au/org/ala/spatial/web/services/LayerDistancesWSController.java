@@ -16,7 +16,7 @@ package au.org.ala.spatial.web.services;
 import au.org.ala.layers.client.Client;
 import au.org.ala.layers.dto.Field;
 import au.org.ala.layers.dto.Layer;
-import au.org.ala.spatial.analysis.index.LayerDistanceIndex;
+import au.org.ala.spatial.analysis.layers.LayerDistanceIndex;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

@@ -3,16 +3,16 @@ package au.org.ala.spatial.analysis.scatterplot;
 import au.com.bytecode.opencsv.CSVReader;
 import au.org.ala.layers.client.Client;
 import au.org.ala.layers.dto.IntersectionFile;
+import au.org.ala.layers.grid.GridCutter;
 import au.org.ala.layers.intersect.Grid;
 import au.org.ala.layers.intersect.SimpleRegion;
 import au.org.ala.layers.intersect.SimpleShapeFile;
 import au.org.ala.layers.legend.Legend;
 import au.org.ala.layers.legend.LegendObject;
+import au.org.ala.layers.util.LayerFilter;
 import au.org.ala.layers.util.Occurrences;
 import au.org.ala.layers.util.SpatialUtil;
-import au.org.ala.spatial.analysis.index.LayerFilter;
 import au.org.ala.spatial.util.AlaspatialProperties;
-import au.org.ala.spatial.util.GridCutter;
 import au.org.ala.spatial.util.Zipper;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -54,15 +54,11 @@ import java.util.List;
  */
 public class Scatterplot {
 
-    LoggerFactory lf;
-
-    private static Logger logger = Logger.getLogger(Scatterplot.class);
-
     private static final String NUMBER_SERIES = "Number series";
     private static final String ACTIVE_AREA_SERIES = "In Active Area";
-
     private static final String[][] facetNameExceptions = {{"cl22", "state"}, {"cl20", "ibra"}, {"cl21", "imcra"}};
-
+    private static Logger logger = Logger.getLogger(Scatterplot.class);
+    LoggerFactory lf;
     JFreeChart jChart;
     XYPlot plot;
     ChartRenderingInfo chartRenderingInfo;
@@ -82,19 +78,17 @@ public class Scatterplot {
     //for scatterplot
     String imagePath;
     String imageURL;
-
-    //for scatterplot list
-    private String htmlURL;
-    private String downloadURL;
-
     String cutDataPath = null;
-
     //Layers index for columns 1 and 2.  This is variable when constructing a scatterplot list.
     int col1 = 0;
     int col2 = 1;
-
     //remember colourMode related data queries
     HashMap<String, LegendObject> legends = new HashMap<String, LegendObject>();
+    String htmlHeader = "<html><body><table border=1>";
+    String htmlFooter = "</table></body></html>";
+    //for scatterplot list
+    private String htmlURL;
+    private String downloadURL;
 
     public Scatterplot(ScatterplotDTO scatterplotDTO, ScatterplotStyleDTO scatterplotStyleDTO, ScatterplotDataDTO scatterplotDataDTO) {
         this.scatterplotDTO = scatterplotDTO;
@@ -145,6 +139,35 @@ public class Scatterplot {
             imageURL = AlaspatialProperties.getAlaspatialUrl() + "ws/scatterplot/" + scatterplotDTO.getId() + ".png";
 
         }
+    }
+
+    static String translateFieldForSolr(String facetName) {
+        if (facetName == null) {
+            return facetName;
+        }
+        for (String[] s : facetNameExceptions) {
+            if (facetName.equals(s[0])) {
+                facetName = s[1];
+                break;
+            }
+        }
+        if ("occurrence_year_individual".equals(facetName)) {
+            facetName = "occurrence_year";
+        }
+        if ("occurrence_year_decade".equals(facetName)) {
+            facetName = "occurrence_year";
+        }
+        return facetName;
+    }
+
+    static String translateSolrForField(String facetName) {
+        for (String[] s : facetNameExceptions) {
+            if (facetName.equals(s[1])) {
+                facetName = s[0];
+                break;
+            }
+        }
+        return facetName;
     }
 
     private void makeZip() {
@@ -1156,6 +1179,10 @@ public class Scatterplot {
         return scatterplotStyleDTO;
     }
 
+    /*
+    scatterplot list specific functions
+     */
+
     public ScatterplotDataDTO getScatterplotDataDTO() {
         return scatterplotDataDTO;
     }
@@ -1232,13 +1259,6 @@ public class Scatterplot {
 
         return null;
     }
-
-    /*
-    scatterplot list specific functions
-     */
-
-    String htmlHeader = "<html><body><table border=1>";
-    String htmlFooter = "</table></body></html>";
 
     private void makeHtml() {
         String pth = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "scatterplot" + File.separator + scatterplotDTO.getId() + File.separator;
@@ -1432,34 +1452,5 @@ public class Scatterplot {
             }
         }
         return null;
-    }
-
-    static String translateFieldForSolr(String facetName) {
-        if (facetName == null) {
-            return facetName;
-        }
-        for (String[] s : facetNameExceptions) {
-            if (facetName.equals(s[0])) {
-                facetName = s[1];
-                break;
-            }
-        }
-        if ("occurrence_year_individual".equals(facetName)) {
-            facetName = "occurrence_year";
-        }
-        if ("occurrence_year_decade".equals(facetName)) {
-            facetName = "occurrence_year";
-        }
-        return facetName;
-    }
-
-    static String translateSolrForField(String facetName) {
-        for (String[] s : facetNameExceptions) {
-            if (facetName.equals(s[1])) {
-                facetName = s[0];
-                break;
-            }
-        }
-        return facetName;
     }
 }

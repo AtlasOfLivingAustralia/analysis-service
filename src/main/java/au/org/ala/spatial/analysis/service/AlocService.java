@@ -320,7 +320,7 @@ public class AlocService {
             }
         });
 
-        ArrayList<Object> data_pieces = GridCutter.loadCutGridsForAloc(files, outputpath + "extents.txt", pieces, job);
+        ArrayList<Object> data_pieces = GridCutterAloc.loadCutGridsForAloc(files, outputpath + "extents.txt", pieces, job);
         if (data_pieces == null) {
             return;
         }
