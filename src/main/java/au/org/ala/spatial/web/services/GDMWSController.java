@@ -58,9 +58,370 @@ import java.util.logging.Logger;
 @RequestMapping("/ws/gdm/")
 public class GDMWSController {
 
+    private Map<String, Step1Thread> step1 = new HashMap<String, Step1Thread>();
+    private Map<String, Step2Thread> step2 = new HashMap<String, Step2Thread>();
+
+    @RequestMapping(value = "/step1/status", method = RequestMethod.GET)
+    public
+    @ResponseBody
+    String getStep1Status(HttpServletRequest req) {
+        String id = req.getParameter("id");
+
+        return step1.get(id).result;
+    }
+
+    @RequestMapping(value = "/step2/status", method = RequestMethod.GET)
+    public
+    @ResponseBody
+    String getStep2Status(HttpServletRequest req) {
+        String id = req.getParameter("id");
+
+        return step2.get(id).result;
+    }
+
+    @RequestMapping(value = "/step1", method = RequestMethod.POST)
+    public
+    @ResponseBody
+    String processStep1(HttpServletRequest req) {
+
+        try {
+
+            String outputdir = "";
+            long currTime = System.currentTimeMillis();
+
+            String envlist = req.getParameter("envlist");
+            String area = req.getParameter("area");
+            String taxacount = req.getParameter("taxacount");
+            String resolution = req.getParameter("resolution");
+            String bs = req.getParameter("bs");
+            String speciesq = req.getParameter("speciesq");
+
+            Step1Thread step1Thread = new Step1Thread(speciesq, bs, "" + currTime, envlist, area, resolution, taxacount);
+
+            step1.put("" + currTime, step1Thread);
+
+            step1Thread.start();
+
+            return "" + currTime;
+
+        } catch (Exception e) {
+            System.out.println("Error processing gdm request");
+            e.printStackTrace(System.out);
+        }
+
+        return "";
+    }
+
+    @RequestMapping(value = "/step2", method = RequestMethod.POST)
+    public
+    @ResponseBody
+    String processStep2(HttpServletRequest req) {
+        String output = "";
+
+        try {
+            String pid = req.getParameter("pid");
+            String cutpoint = req.getParameter("cutpoint");
+            String useDistance = req.getParameter("useDistance");
+            String weighting = req.getParameter("weighting");
+            String useSubSample = req.getParameter("useSubSample");
+            String sitePairsSize = req.getParameter("sitePairsSize");
+
+            Step2Thread step2Thread = new Step2Thread(pid, cutpoint, useDistance, weighting, useSubSample, sitePairsSize);
+
+            step2.put(pid, step2Thread);
+
+            step2Thread.start();
+
+            return pid;
+
+        } catch (Exception e) {
+            System.out.println("Error processing gdm request");
+            e.printStackTrace(System.out);
+        }
+
+        return output;
+    }
+
+    private static int runGDM(String params) {
+        return runGDM(0, params);
+    }
+
+    public static int runGDM(int level, String params) {
+        Runtime runtime = Runtime.getRuntime();
+        Process proc;
+        InputStreamReader isre = null, isr = null;
+        BufferedReader bre = null, br = null;
+        int exitValue = -1;
+
+        try {
+            String command = AlaspatialProperties.getAnalysisGdmCmd() + " -g" + level + " " + params;
+            System.out.println("Running gdm: " + command);
+
+            proc = runtime.exec(command);
+
+            isre = new InputStreamReader(proc.getErrorStream());
+            bre = new BufferedReader(isre);
+            isr = new InputStreamReader(proc.getInputStream());
+            br = new BufferedReader(isr);
+            String line;
+
+            while ((line = bre.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            int exitVal = proc.waitFor();
+
+            // any error???
+            exitValue = exitVal;
+
+        } catch (Exception e) {
+            System.out.println("Error executing GDM: ");
+            e.printStackTrace(System.out);
+        } finally {
+            try {
+                isre.close();
+                bre.close();
+                isr.close();
+                br.close();
+            } catch (IOException ioe) {
+                System.out.println("Error closing output and error streams");
+            }
+        }
+
+        return exitValue;
+    }
+
+
+}
+
+class Step1Thread extends Thread {
+    String result = "running";
+
+    String speciesq;
+    String bs;
+    String id;
+    String envlist;
+    String area;
+    String resolution;
+    String taxacount;
+
     private Map taxonNames;
 
-    public static String updateParamfile(String cutpoint, String useDistance, String weighting, String useSubSample, String sitePairsSize, String outputdir) {
+    Step1Thread(String speciesq, String bs, String id, String envlist, String area, String resolution, String taxacount) {
+        this.speciesq = speciesq;
+        this.bs = bs;
+        this.id = id;
+        this.envlist = envlist;
+        this.area = area;
+        this.resolution = resolution;
+        this.taxacount = taxacount;
+    }
+
+    @Override
+    public void run() {
+        try {
+
+            OccurrenceData od = new OccurrenceData();
+            String[] s = od.getSpeciesData(speciesq, bs, null, "names_and_lsid");
+
+            StringBuilder speciesdata = new StringBuilder();
+            taxonNames = new HashMap();
+            speciesdata.append("\"X\",\"Y\",\"CODE\"");
+            CSVReader reader = new CSVReader(new StringReader(s[0]));
+            reader.readNext();  //discard header
+            String[] line;
+            while ((line = reader.readNext()) != null) {
+                speciesdata.append("\n").append(line[1]).append(",").append(line[2])
+                        .append(",\"").append(getSPindex(line[0])).append("\"");
+            }
+
+            LayerFilter[] filter = null;
+            SimpleRegion region = null;
+            if (area != null && area.startsWith("ENVELOPE")) {
+                filter = LayerFilter.parseLayerFilters(area);
+            } else {
+                region = SimpleShapeFile.parseWKT(area);
+            }
+
+            // 1. create work/output directory
+            String outputdir = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "gdm" + File.separator + id + File.separator;
+            File outdir = new File(outputdir);
+            outdir.mkdirs();
+
+            System.out.println("gdm.outputpath: " + outputdir);
+
+            // 2. generate species file
+            //String speciesFile = generateSpeciesFile(outputdir, taxons, region);
+            String speciesFile = generateSpeciesFile(outputdir, speciesdata.toString());
+
+            System.out.println("gdm.speciesFile: " + speciesFile);
+
+            // 3. cut environmental layers
+            if (resolution == null) {
+                resolution = "0.01";
+            }
+            String cutDataPath = GridCutter.cut2(envlist.split(":"), resolution, region, filter, null);
+
+            System.out.println("CUTDATAPATH: " + region + " " + cutDataPath);
+
+            System.out.println("gdm.cutDataPath: " + cutDataPath);
+
+            // 4. produce domain grid
+            //DomainGrid.generate(cutDataPath, layers, region, outputdir);
+
+            // 5. build parameters files for GDM
+            String params = generateStep1Paramfile(envlist.split(":"), cutDataPath, speciesFile, outputdir);
+
+            // 6. run GDM
+            int exit = GDMWSController.runGDM(1, params);
+            System.out.println("gdm.exit: " + exit);
+
+            String output = "";
+            output += id + "\n";
+
+            Scanner sc = new Scanner(new File(outputdir + "Cutpoint.csv"));
+            while (sc.hasNextLine()) {
+                output += sc.nextLine() + "\n";
+            }
+
+
+            // write the properties to a file so we can grab them back later
+            Properties props = new Properties();
+            props.setProperty("pid", id);
+            props.setProperty("envlist", envlist);
+            props.setProperty("area", area);
+            props.setProperty("taxacount", taxacount);
+            //props.store(new PrintWriter(new BufferedWriter(new FileWriter(outputdir + "ala.properties"))), "");
+            props.store(new FileOutputStream(outputdir + "ala.properties"), "ALA GDM Properties");
+
+            result = output;
+        } catch (Exception e) {
+            e.printStackTrace();
+            result = "error";
+        }
+    }
+
+    private String getSPindex(String sp) {
+        if (!taxonNames.containsKey(sp)) {
+            taxonNames.put(sp, String.valueOf(taxonNames.size()));
+        }
+        return (String) taxonNames.get(sp);
+    }
+
+    private String generateStep1Paramfile(String[] layers, String layersPath, String speciesfile, String outputdir) {
+        try {
+            LayerDAO layerDao = Client.getLayerDao();
+            StringBuilder envLayers = new StringBuilder();
+            StringBuilder useEnvLayers = new StringBuilder();
+            StringBuilder predSpline = new StringBuilder();
+            for (int i = 0; i < layers.length; i++) {
+                envLayers.append("EnvGrid").append(i + 1).append("=").append(layersPath).append(layers[i]).append("\n");
+                envLayers.append("EnvGridName").append(i + 1).append("=").append(layerDao.getLayerByName(layers[i]).getDisplayname()).append("\n");
+                useEnvLayers.append("UseEnv").append(i + 1).append("=1").append("\n");
+                predSpline.append("PredSpl").append(i + 1).append("=3").append("\n");
+            }
+
+            StringBuilder sbOut = new StringBuilder();
+            sbOut.append("[GDMODEL]").append("\n").append("WorkspacePath=" + outputdir).append("\n").append("RespDataType=RD_SitePlusSpecies").append("\n").append("PredDataType=ED_GridData").append("\n").append("Quantiles=QUANTS_FromData").append("\n").append("UseEuclidean=0").append("\n").append("UseSubSample=1").append("\n").append("NumSamples=10000").append("\n").append("[RESPONSE]").append("\n").append("InputData=" + speciesfile).append("\n").append("UseWeights=0").append("\n").append("[PREDICTORS]").append("\n").append("EuclSpl=3").append("\n").append("NumPredictors=" + layers.length).append("\n").append(envLayers).append("\n").append(useEnvLayers).append("\n").append(predSpline).append("\n");
+            PrintWriter spWriter = new PrintWriter(new BufferedWriter(new FileWriter(outputdir + "gdm_params.txt")));
+            spWriter.write(sbOut.toString());
+            spWriter.close();
+
+            return outputdir + "gdm_params.txt";
+        } catch (Exception e) {
+            System.out.println("Unable to write the initial params file");
+            e.printStackTrace(System.out);
+        }
+
+        return "";
+    }
+
+    private String generateSpeciesFile(String outputdir, String speciesdata) {
+        try {
+
+            File fDir = new File(outputdir);
+            fDir.mkdir();
+
+            File spFile = new File(fDir, "species_points.csv");
+            FileUtils.writeStringToFile(spFile, speciesdata + "\n", "UTF-8");
+
+            return spFile.getAbsolutePath();
+
+        } catch (Exception e) {
+            System.out.println("error generating species file");
+            e.printStackTrace(System.out);
+        }
+
+        return null;
+    }
+}
+
+class Step2Thread extends Thread {
+    String result = "running";
+
+    String pid;
+    String cutpoint;
+    String useDistance;
+    String weighting;
+    String useSubSample;
+    String sitePairsSize;
+
+    public Step2Thread(String pid, String cutpoint, String useDistance, String weighting, String useSubSample, String sitePairsSize) {
+        this.pid = pid;
+        this.cutpoint = cutpoint;
+        this.useDistance = useDistance;
+        this.weighting = weighting;
+        this.useSubSample = useSubSample;
+        this.sitePairsSize = sitePairsSize;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+
+            String outputdir = "";
+
+            outputdir = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "gdm" + File.separator + pid + File.separator;
+
+
+            Properties props = new Properties();
+            props.load(new FileInputStream(outputdir + "ala.properties"));
+            String envlist = props.getProperty("envlist");
+            String area = props.getProperty("area");
+
+            // 5. build parameters files for GDM
+            String params = updateParamfile(cutpoint, useDistance, weighting, useSubSample, sitePairsSize, outputdir);
+
+            //System.out.println("gdm.params: \n-------------------------\n" + params + "\n-------------------------\n");
+            System.out.println("gdm.params: " + params);
+
+            // 6. run GDM
+            int exit = GDMWSController.runGDM(2, params);
+            System.out.println("gdm.exit: " + exit);
+
+            // 7. process params file
+
+            // 7.1 generate/display charts
+            generateCharts(outputdir);
+            generateMetadata(envlist.split(":"), area, pid, outputdir);
+
+            // 7.2 generate/display transform grid
+            processTransformedGrids(pid, outputdir);
+
+            result = pid;
+        } catch (Exception e) {
+            e.printStackTrace();
+            result = "error";
+        }
+
+    }
+
+    public String updateParamfile(String cutpoint, String useDistance, String weighting, String useSubSample, String sitePairsSize, String outputdir) {
         try {
             IniReader ir = new IniReader(outputdir + "/gdm_params.txt");
             ir.setValue("GDMODEL", "UseEuclidean", useDistance);
@@ -77,42 +438,7 @@ public class GDMWSController {
         return outputdir + "gdm_params.txt";
     }
 
-    public static void processTransformedGrids(String pid, String outputdir) {
-        System.out.println("About to iterate thru' files in " + outputdir);
-        try {
-
-            String url = "";
-            String extra = "";
-            String username = AlaspatialProperties.getGeoserverUsername();
-            String password = AlaspatialProperties.getGeoserverPassword();
-
-            Iterator<File> files = FileUtils.iterateFiles(new File(outputdir), new String[]{"grd"}, false);
-            while (files.hasNext()) {
-                File f = files.next();
-                if (f.getName().startsWith("domain")) {
-                    continue;
-                }
-                String lyr = f.getName().substring(0, f.getName().length() - 4);
-                System.out.println("Converting " + lyr);
-                SpatialTransformer.convertDivaToAsc(outputdir + lyr, outputdir + lyr + ".asc");
-
-                String[] infiles = {outputdir + lyr + ".asc", outputdir + lyr + ".prj"};
-                String ascZipFile = outputdir + lyr + ".zip";
-                Zipper.zipFiles(infiles, ascZipFile);
-
-                url = AlaspatialProperties.getGeoserverUrl() + "/rest/workspaces/ALA/coveragestores/gdm_" + lyr + "_" + pid + "/file.arcgrid?coverageName=gdm_" + lyr + "_" + pid;
-                // Upload the file to GeoServer using REST calls
-                System.out.println("Uploading file: " + ascZipFile + " to \n" + url);
-                UploadSpatialResource.loadResource(url, extra, username, password, ascZipFile);
-            }
-
-        } catch (Exception e) {
-            System.out.println("Unable to generate and upload transformed grids");
-            e.printStackTrace(System.out);
-        }
-    }
-
-    public static void generateCharts(String outputdir) {
+    public void generateCharts(String outputdir) {
 
         // Check if there is 'plots' dir. if not create it.
         File plots = new File(outputdir + "/plots/");
@@ -123,7 +449,7 @@ public class GDMWSController {
         generateCharts45(outputdir);
     }
 
-    public static void generateCharts123(String outputdir) {
+    public void generateCharts123(String outputdir) {
         try {
             IniReader ir = new IniReader(outputdir + "/gdm_params.txt");
             double intercept = ir.getDoubleValue("GDMODEL", "Intercept");
@@ -296,7 +622,7 @@ public class GDMWSController {
         }
     }
 
-    public static void generateCharts45(String outputdir) {
+    public void generateCharts45(String outputdir) {
         try {
             // read the gdm_params.txt, and for each predictor Coeff (1, 2, 3),
             // add them up
@@ -440,447 +766,6 @@ public class GDMWSController {
         ChartUtilities.saveChartAsPNG(new File(outputdir + "plots/" + filename + ".png"), jChart, 900, 500);
     }
 
-    public static void main(String[] args) {
-        //generateCharts("/Users/ajay/Downloads/1328584218973/");
-        //generateCharts("/Users/ajay/Downloads/My_GDM_domain_sxs/");
-        ////generateCharts("/Users/ajay/projects/ala/code/other/gdm/testdata/");
-        //generateChart2and3("/Users/ajay/Downloads/My_GDM_domain_sxs/", Integer.parseInt(args[0]));
-
-        //updateParamfile("112", "1", "1", "0", "123456", "/Users/ajay/projects/ala/code/other/gdm/testdata/");
-
-        processTransformedGrids("2", "/Users/ajay/projects/ala/code/other/gdm/testdata/");
-    }
-
-    @RequestMapping(value = "/step1", method = RequestMethod.POST)
-    public
-    @ResponseBody
-    String processStep1(HttpServletRequest req) {
-
-        try {
-
-            String outputdir = "";
-            long currTime = System.currentTimeMillis();
-
-            String envlist = req.getParameter("envlist");
-            //String speciesdata = req.getParameter("speciesdata");
-            String area = req.getParameter("area");
-            String taxacount = req.getParameter("taxacount");
-
-
-            String bs = req.getParameter("bs");
-            String speciesq = req.getParameter("speciesq");
-
-            OccurrenceData od = new OccurrenceData();
-            String[] s = od.getSpeciesData(speciesq, bs, null, "names_and_lsid");
-
-            StringBuilder speciesdata = new StringBuilder();
-            taxonNames = new HashMap();
-            speciesdata.append("\"X\",\"Y\",\"CODE\"");
-            CSVReader reader = new CSVReader(new StringReader(s[0]));
-            reader.readNext();  //discard header
-            String[] line;
-            while ((line = reader.readNext()) != null) {
-                speciesdata.append("\n").append(line[1]).append(",").append(line[2])
-                        .append(",\"").append(getSPindex(line[0])).append("\"");
-            }
-
-            //Layer[] layers = getEnvFilesAsLayers(envlist);
-
-            LayerFilter[] filter = null;
-            SimpleRegion region = null;
-            if (area != null && area.startsWith("ENVELOPE")) {
-                filter = LayerFilter.parseLayerFilters(area);
-            } else {
-                region = SimpleShapeFile.parseWKT(area);
-            }
-
-            // 1. create work/output directory
-            //outputdir = TabulationSettings.base_output_dir + currTime + "/";
-            outputdir = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "gdm" + File.separator + currTime + File.separator;
-            File outdir = new File(outputdir);
-            outdir.mkdirs();
-
-            System.out.println("gdm.outputpath: " + outputdir);
-
-            // 2. generate species file
-            //String speciesFile = generateSpeciesFile(outputdir, taxons, region);
-            String speciesFile = generateSpeciesFile(outputdir, speciesdata.toString());
-
-            System.out.println("gdm.speciesFile: " + speciesFile);
-
-            // 3. cut environmental layers
-            //String cutDataPath = GridCutter.cut(layers, region, filter, null);
-            //SpatialSettings ssets = new SpatialSettings();
-            //String cutDataPath = ssets.getEnvDataPath();
-
-            String resolution = req.getParameter("res");
-            if (resolution == null) {
-                resolution = "0.01";
-            }
-            String cutDataPath = GridCutter.cut2(envlist.split(":"), resolution, region, filter, null);
-
-            System.out.println("CUTDATAPATH: " + region + " " + cutDataPath);
-
-            System.out.println("gdm.cutDataPath: " + cutDataPath);
-
-            // 4. produce domain grid
-            //DomainGrid.generate(cutDataPath, layers, region, outputdir);
-
-            // 5. build parameters files for GDM
-            String params = generateStep1Paramfile(envlist.split(":"), cutDataPath, speciesFile, outputdir);
-
-
-            // 6. run GDM
-            int exit = runGDM(1, params);
-            System.out.println("gdm.exit: " + exit);
-
-            String output = "";
-            output += Long.toString(currTime) + "\n";
-//            BufferedReader cutpoint = new BufferedReader(new FileReader(outputdir + "Cutpoint.csv"));
-//            String line = "";
-//            while ((line = cutpoint.readLine()) != null) {
-//                output += line;
-//            }
-            Scanner sc = new Scanner(new File(outputdir + "Cutpoint.csv"));
-            while (sc.hasNextLine()) {
-                output += sc.nextLine() + "\n";
-            }
-
-
-            // write the properties to a file so we can grab them back later
-            Properties props = new Properties();
-            props.setProperty("pid", Long.toString(currTime));
-            props.setProperty("envlist", envlist);
-            props.setProperty("area", area);
-            props.setProperty("taxacount", taxacount);
-            //props.store(new PrintWriter(new BufferedWriter(new FileWriter(outputdir + "ala.properties"))), "");
-            props.store(new FileOutputStream(outputdir + "ala.properties"), "ALA GDM Properties");
-
-
-            return output;
-
-        } catch (Exception e) {
-            System.out.println("Error processing gdm request");
-            e.printStackTrace(System.out);
-        }
-
-        return "";
-    }
-
-    private String getSPindex(String sp) {
-        if (!taxonNames.containsKey(sp)) {
-            taxonNames.put(sp, String.valueOf(taxonNames.size()));
-        }
-        return (String) taxonNames.get(sp);
-    }
-
-    @RequestMapping(value = "/step2", method = RequestMethod.POST)
-    public
-    @ResponseBody
-    String processStep2(HttpServletRequest req) {
-        String output = "";
-
-        try {
-
-            String outputdir = "";
-
-            String pid = req.getParameter("pid");
-            String cutpoint = req.getParameter("cutpoint");
-            String useDistance = req.getParameter("useDistance");
-            String weighting = req.getParameter("weighting");
-            String useSubSample = req.getParameter("useSubSample");
-            String sitePairsSize = req.getParameter("sitePairsSize");
-
-            outputdir = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "gdm" + File.separator + pid + File.separator;
-
-
-            Properties props = new Properties();
-            props.load(new FileInputStream(outputdir + "ala.properties"));
-            String envlist = props.getProperty("envlist");
-            String area = props.getProperty("area");
-            String taxacount = props.getProperty("taxacount");
-            //Layer[] layers = getEnvFilesAsLayers(envlist);
-
-
-            // 5. build parameters files for GDM
-            String params = updateParamfile(cutpoint, useDistance, weighting, useSubSample, sitePairsSize, outputdir);
-
-            //System.out.println("gdm.params: \n-------------------------\n" + params + "\n-------------------------\n");
-            System.out.println("gdm.params: " + params);
-
-            // 6. run GDM
-            int exit = runGDM(2, params);
-            System.out.println("gdm.exit: " + exit);
-
-
-            // 7. process params file
-
-            // 7.1 generate/display charts
-            generateCharts(outputdir);
-            generateMetadata(envlist.split(":"), area, pid, outputdir);
-
-            // 7.2 generate/display transform grid
-            processTransformedGrids(pid, outputdir);
-
-            return pid;
-
-
-        } catch (Exception e) {
-            System.out.println("Error processing gdm request");
-            e.printStackTrace(System.out);
-        }
-
-        return output;
-    }
-
-    @RequestMapping(value = "/process2", method = RequestMethod.POST)
-    public
-    @ResponseBody
-    String process2(HttpServletRequest req) {
-        String output = "";
-
-        try {
-
-            String outputdir = "";
-            long currTime = System.currentTimeMillis();
-
-            String envlist = req.getParameter("envlist");
-            String quantile = req.getParameter("quantile");
-            String useDistance = req.getParameter("useDistance");
-            String useSubSample = req.getParameter("useSubSample");
-            String sitePairsSize = req.getParameter("sitePairsSize");
-            String speciesdata = req.getParameter("speciesdata");
-            String area = req.getParameter("area");
-
-            //Layer[] layers = getEnvFilesAsLayers(envlist);
-
-            LayerFilter[] filter = null;
-            SimpleRegion region = null;
-            if (area != null && area.startsWith("ENVELOPE")) {
-                filter = LayerFilter.parseLayerFilters(area);
-            } else {
-                region = SimpleShapeFile.parseWKT(area);
-            }
-
-
-            // 1. create work/output directory
-            //outputdir = TabulationSettings.base_output_dir + currTime + "/";
-            outputdir = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "gdm" + File.separator + currTime + File.separator;
-            File outdir = new File(outputdir);
-            outdir.mkdirs();
-
-            System.out.println("gdm.outputpath: " + outputdir);
-
-            // 2. generate species file
-            //String speciesFile = generateSpeciesFile(outputdir, taxons, region);
-            String speciesFile = generateSpeciesFile(outputdir, speciesdata);
-
-            System.out.println("gdm.speciesFile: " + speciesFile);
-
-            // 3. cut environmental layers
-            //String cutDataPath = GridCutter.cut(layers, region, filter, null);
-            //SpatialSettings ssets = new SpatialSettings();
-            //String cutDataPath = ssets.getEnvDataPath();
-
-            String resolution = req.getParameter("res");
-            if (resolution == null) {
-                resolution = "0.01";
-            }
-            String cutDataPath = GridCutter.cut2(envlist.split(":"), resolution, region, filter, null);
-
-            System.out.println("CUTDATAPATH: " + region + " " + cutDataPath);
-
-            System.out.println("gdm.cutDataPath: " + cutDataPath);
-
-            // 4. produce domain grid
-            //DomainGrid.generate(cutDataPath, layers, region, outputdir);
-
-            // 5. build parameters files for GDM
-            String params = generateParamfile(envlist.split(":"), cutDataPath, useDistance, speciesFile, outputdir);
-
-            //System.out.println("gdm.params: \n-------------------------\n" + params + "\n-------------------------\n");
-            System.out.println("gdm.params: " + params);
-
-            // 6. run GDM
-            int exit = runGDM(params);
-            System.out.println("gdm.exit: " + exit);
-
-
-            // 7. process params file
-
-            // 7.1 generate/display charts
-            generateCharts(outputdir);
-            generateMetadata(envlist.split(":"), area, area, outputdir);
-
-            // 7.2 generate/display transform grid
-
-            return Long.toString(currTime);
-
-
-        } catch (Exception e) {
-            System.out.println("Error processing gdm request");
-            e.printStackTrace(System.out);
-        }
-
-        return output;
-    }
-
-    private String generateSpeciesFile(String outputdir, String speciesdata) {
-        try {
-
-            File fDir = new File(outputdir);
-            fDir.mkdir();
-
-            File spFile = new File(fDir, "species_points.csv");
-            FileUtils.writeStringToFile(spFile, speciesdata + "\n", "UTF-8");
-
-            return spFile.getAbsolutePath();
-
-        } catch (Exception e) {
-            System.out.println("error generating species file");
-            e.printStackTrace(System.out);
-        }
-
-        return null;
-    }
-
-    private String generateStep1Paramfile(String[] layers, String layersPath, String speciesfile, String outputdir) {
-        try {
-            LayerDAO layerDao = Client.getLayerDao();
-            StringBuilder envLayers = new StringBuilder();
-            StringBuilder useEnvLayers = new StringBuilder();
-            StringBuilder predSpline = new StringBuilder();
-            for (int i = 0; i < layers.length; i++) {
-                envLayers.append("EnvGrid").append(i + 1).append("=").append(layersPath).append(layers[i]).append("\n");
-                envLayers.append("EnvGridName").append(i + 1).append("=").append(layerDao.getLayerByName(layers[i]).getDisplayname()).append("\n");
-                useEnvLayers.append("UseEnv").append(i + 1).append("=1").append("\n");
-                predSpline.append("PredSpl").append(i + 1).append("=3").append("\n");
-            }
-
-            StringBuilder sbOut = new StringBuilder();
-            sbOut.append("[GDMODEL]").append("\n").append("WorkspacePath=" + outputdir).append("\n").append("RespDataType=RD_SitePlusSpecies").append("\n").append("PredDataType=ED_GridData").append("\n").append("Quantiles=QUANTS_FromData").append("\n").append("UseEuclidean=0").append("\n").append("UseSubSample=1").append("\n").append("NumSamples=10000").append("\n").append("[RESPONSE]").append("\n").append("InputData=" + speciesfile).append("\n").append("UseWeights=0").append("\n").append("[PREDICTORS]").append("\n").append("EuclSpl=3").append("\n").append("NumPredictors=" + layers.length).append("\n").append(envLayers).append("\n").append(useEnvLayers).append("\n").append(predSpline).append("\n");
-            PrintWriter spWriter = new PrintWriter(new BufferedWriter(new FileWriter(outputdir + "gdm_params.txt")));
-            spWriter.write(sbOut.toString());
-            spWriter.close();
-
-            return outputdir + "gdm_params.txt";
-        } catch (Exception e) {
-            System.out.println("Unable to write the initial params file");
-            e.printStackTrace(System.out);
-        }
-
-        return "";
-    }
-
-    private String generateParamfile(String[] layers, String layersPath, String useEuclidean, String speciesfile, String outputdir) {
-        try {
-            LayerDAO layerDao = Client.getLayerDao();
-            StringBuilder envLayers = new StringBuilder();
-            StringBuilder useEnvLayers = new StringBuilder();
-            StringBuilder predSpline = new StringBuilder();
-            for (int i = 0; i < layers.length; i++) {
-                envLayers.append("EnvGrid").append(i + 1).append("=").append(layersPath).append(layers[i]).append("\n");
-                envLayers.append("EnvGridName").append(i + 1).append("=").append(layerDao.getLayerByName(layers[i]).getDisplayname()).append("\n");
-                useEnvLayers.append("UseEnv").append(i + 1).append("=1").append("\n");
-                predSpline.append("PredSpl").append(i + 1).append("=3").append("\n");
-            }
-            StringBuilder sbOut = new StringBuilder();
-            sbOut.append("[GDMODEL]").append("\n").append("WorkspacePath=" + outputdir).append("\n").append("RespDataType=RD_SitePlusSpecies").append("\n").append("PredDataType=ED_GridData").append("\n").append("Quantiles=QUANTS_FromData").append("\n").append("UseEuclidean=0").append("\n").append("UseSubSample=1").append("\n").append("NumSamples=10000").append("\n").append("[RESPONSE]").append("\n").append("InputData=" + speciesfile).append("\n").append("UseWeights=0").append("\n").append("[PREDICTORS]").append("\n") //.append("DomainGrid=/data/ala/runtime/output/gdm/test/domain").append("\n")
-                    .append("EuclSpl=3").append("\n").append("NumPredictors=" + layers.length).append("\n").append(envLayers).append("\n").append(useEnvLayers).append("\n").append(predSpline).append("\n");
-            //File fDir = new File(outputdir);
-            //fDir.mkdir();
-            //File spFile = File.createTempFile("params_", ".csv", fDir);
-            PrintWriter spWriter = new PrintWriter(new BufferedWriter(new FileWriter(outputdir + "gdm_params.txt")));
-            spWriter.write(sbOut.toString());
-            spWriter.close();
-            //return spFile.getAbsolutePath();
-            return outputdir + "gdm_params.txt";
-        } catch (IOException ex) {
-            Logger.getLogger(GDMWSController.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return null;
-    }
-
-    //    private Layer[] getEnvFilesAsLayers(String envNames) {
-//        try {
-//            envNames = URLDecoder.decode(envNames, "UTF-8");
-//        } catch (UnsupportedEncodingException ex) {
-//            ex.printStackTrace(System.out);
-//        }
-//        String[] nameslist = envNames.split(":");
-//        Layer[] sellayers = new Layer[nameslist.length];
-//
-//        Layer[] _layerlist = TabulationSettings.environmental_data_files;
-//
-//        for (int j = 0; j < nameslist.length; j++) {
-//            for (int i = 0; i < _layerlist.length; i++) {
-//                if (_layerlist[i].display_name.equalsIgnoreCase(nameslist[j])
-//                        || _layerlist[i].name.equalsIgnoreCase(nameslist[j])) {
-//                    sellayers[j] = _layerlist[i];
-//                    //sellayers[j].name = _layerPath + sellayers[j].name;
-//                    System.out.println("Adding layer for GDM: " + sellayers[j].name);
-//                    continue;
-//                }
-//            }
-//        }
-//
-//        return sellayers;
-//    }
-    private int runGDM(String params) {
-        return runGDM(0, params);
-    }
-
-    private int runGDM(int level, String params) {
-        Runtime runtime = Runtime.getRuntime();
-        Process proc;
-        InputStreamReader isre = null, isr = null;
-        BufferedReader bre = null, br = null;
-        int exitValue = -1;
-
-        try {
-            String command = AlaspatialProperties.getAnalysisGdmCmd() + " -g" + level + " " + params;
-            System.out.println("Running gdm: " + command);
-
-//            return 111;
-
-            proc = runtime.exec(command);
-
-            isre = new InputStreamReader(proc.getErrorStream());
-            bre = new BufferedReader(isre);
-            isr = new InputStreamReader(proc.getInputStream());
-            br = new BufferedReader(isr);
-            String line;
-
-            while ((line = bre.readLine()) != null) {
-                System.out.println(line);
-            }
-
-            while ((line = br.readLine()) != null) {
-                System.out.println(line);
-            }
-
-            int exitVal = proc.waitFor();
-
-            // any error???
-            exitValue = exitVal;
-
-        } catch (Exception e) {
-            System.out.println("Error executing GDM: ");
-            e.printStackTrace(System.out);
-        } finally {
-            try {
-                isre.close();
-                bre.close();
-                isr.close();
-                br.close();
-            } catch (IOException ioe) {
-                System.out.println("Error closing output and error streams");
-            }
-        }
-
-        return exitValue;
-    }
-
     private void generateMetadata(String[] layers, String area, String pid, String outputdir) {
         try {
             LayerDAO layerDao = Client.getLayerDao();
@@ -915,6 +800,41 @@ public class GDMWSController {
             spWriter.close();
         } catch (IOException ex) {
             Logger.getLogger(GDMWSController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static void processTransformedGrids(String pid, String outputdir) {
+        System.out.println("About to iterate thru' files in " + outputdir);
+        try {
+
+            String url = "";
+            String extra = "";
+            String username = AlaspatialProperties.getGeoserverUsername();
+            String password = AlaspatialProperties.getGeoserverPassword();
+
+            Iterator<File> files = FileUtils.iterateFiles(new File(outputdir), new String[]{"grd"}, false);
+            while (files.hasNext()) {
+                File f = files.next();
+                if (f.getName().startsWith("domain")) {
+                    continue;
+                }
+                String lyr = f.getName().substring(0, f.getName().length() - 4);
+                System.out.println("Converting " + lyr);
+                SpatialTransformer.convertDivaToAsc(outputdir + lyr, outputdir + lyr + ".asc");
+
+                String[] infiles = {outputdir + lyr + ".asc", outputdir + lyr + ".prj"};
+                String ascZipFile = outputdir + lyr + ".zip";
+                Zipper.zipFiles(infiles, ascZipFile);
+
+                url = AlaspatialProperties.getGeoserverUrl() + "/rest/workspaces/ALA/coveragestores/gdm_" + lyr + "_" + pid + "/file.arcgrid?coverageName=gdm_" + lyr + "_" + pid;
+                // Upload the file to GeoServer using REST calls
+                System.out.println("Uploading file: " + ascZipFile + " to \n" + url);
+                UploadSpatialResource.loadResource(url, extra, username, password, ascZipFile);
+            }
+
+        } catch (Exception e) {
+            System.out.println("Unable to generate and upload transformed grids");
+            e.printStackTrace(System.out);
         }
     }
 }
