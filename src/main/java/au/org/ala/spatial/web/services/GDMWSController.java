@@ -790,7 +790,7 @@ class Step2Thread extends Thread {
             String images = "";
             for (i = 0; i < layers.length; i++) {
                 sbMetadata.append("<li>").append(layerDao.getLayerByName(layers[i]).getDisplayname()).append("</li>");
-                images += "<img src='plots/layers[i].png'/>";
+                images += "<img src='plots/" + layers[i] + ".png'/>";
             }
             sbMetadata.append("</li></ul></li></ul></section>");
 
