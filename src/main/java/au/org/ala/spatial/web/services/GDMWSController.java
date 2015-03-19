@@ -125,8 +125,9 @@ public class GDMWSController {
             String weighting = req.getParameter("weighting");
             String useSubSample = req.getParameter("useSubSample");
             String sitePairsSize = req.getParameter("sitePairsSize");
+            String name = req.getParameter("name");
 
-            Step2Thread step2Thread = new Step2Thread(pid, cutpoint, useDistance, weighting, useSubSample, sitePairsSize);
+            Step2Thread step2Thread = new Step2Thread(pid, cutpoint, useDistance, weighting, useSubSample, sitePairsSize, name);
 
             step2.put(pid, step2Thread);
 
@@ -369,14 +370,16 @@ class Step2Thread extends Thread {
     String weighting;
     String useSubSample;
     String sitePairsSize;
+    String name;
 
-    public Step2Thread(String pid, String cutpoint, String useDistance, String weighting, String useSubSample, String sitePairsSize) {
+    public Step2Thread(String pid, String cutpoint, String useDistance, String weighting, String useSubSample, String sitePairsSize, String name) {
         this.pid = pid;
         this.cutpoint = cutpoint;
         this.useDistance = useDistance;
         this.weighting = weighting;
         this.useSubSample = useSubSample;
         this.sitePairsSize = sitePairsSize;
+        this.name = name;
     }
 
     @Override
@@ -780,16 +783,22 @@ class Step2Thread extends Thread {
             sbMetadata.append("<h3>Your options:</h3><ul>");
 
             sbMetadata.append("<li>Model reference number:").append(pid).append("</li>");
-            sbMetadata.append("<li>Assemblage:").append("").append("</li>");
+            sbMetadata.append("<li>Assemblage:").append(name).append("</li>");
             sbMetadata.append("<li>Area:").append(area).append("</li>");
 
             sbMetadata.append("<li>Layers: <ul>");
+            String images = "";
             for (i = 0; i < layers.length; i++) {
                 sbMetadata.append("<li>").append(layerDao.getLayerByName(layers[i]).getDisplayname()).append("</li>");
+                images += "<img src='plots/layers[i].png'/>";
             }
             sbMetadata.append("</li></ul></li></ul></section>");
 
-            sbMetadata.append("<section><h3>Response Histogram (observed dissimilarity class):</h3><p> The Response Histogram plots the distribution of site pairs within each observed dissimilarity class. The final column in the dissimilarity class > 1 represents the number of site pairs that are totally dissimilar from each other. This chart provides an overview of potential bias in the distribution of the response data. </p><p><img src='plots/resphist.png'/></p></section><section><h3>Observed versus predicted compositional dissimilarity (raw data plot):</h3><p> The 'Raw data' scatter plot presents the Observed vs Predicted degree of compositional dissimilarity for a given model run. Each dot on the chart represents a site-pair. The line represents the perfect 1:1 fit. (Note that the scale and range of values on the x and y axes differ). </p><p> This chart provides a snapshot overview of the degree of scatter in the data. That is, how well the predicted compositional dissimilarity between site pairs matches the actual compositional dissimilarity present in each site pair. </p><p><img src='plots/obspredissim.png'/></p></section><section><h3>Observed compositional dissimilarity vs predicted ecological distance (link function applied to the raw data plot):</h3><p> The 'link function applied' scatter plot presents the Observed compositional dissimilarity vs Predicted ecological distance. Here, the link function has been applied to the predicted compositional dissimilarity to generate the predicted ecological distance. Each dot represents a site-pair. The line represents the perfect 1:1 fit. The scatter of points signifies noise in the relationship between the response and predictor variables. </p><p><img src='plots/dissimdist.png'/></p></section><section><h3>Predictor Histogram:</h3><p> The Predictor Histogram plots the relative contribution (sum of coefficient values) of each environmental gradient layer that is relevant to the model. The sum of coefficient values is a measure of the amount of predicted compositional dissimilarity between site pairs. </p><p> Predictor variables that contribute little to explaining variance in compositional dissimilarity between site pairs have low relative contribution values. Predictor variables that do not make any contribution to explaining variance in compositional dissimilarity between site pairs (i.e., all coefficient values are zero) are not shown. </p><p><img src='plots/predhist.png'/></p></section><section><h3>Fitted Functions:</h3><p> The model output presents the response (compositional turnover) predicted by variation in each predictor. The shape of the predictor is represented by three I-splines, the values of which are defined by the environmental data distribution: min, max and median (i.e., 0, 50 and 100th percentiles). The GDM model estimates the coefficients of the I-splines for each predictor. The coefficient provides an indication of the total amount of compositional turnover correlated with each value at the 0, 50 and 100th percentiles. The sum of these coefficient values is an indicator of the relative importance of each predictor to compositional turnover. </p><p> The coefficients are applied to the ecological distance from the minimum percentile for a predictor. These plots of fitted functions show the sort of monotonic transformations that will take place to a predictor to render it in GDM space. The relative maximum y values (sum of coefficient values) indicate the amount of influence that each predictor makes to the total GDM prediction. </p><p><a href='plots/maxtx.png'><img src='plots/maxtx_thumb.png'/></a><a href='plots/minti.png'><img src='plots/minti_thumb.png'/></a><a href='plots/radnx.png'><img src='plots/radnx_thumb.png'/></a><a href='plots/rainx.png'><img src='plots/rainx_thumb.png'/></a></p></section></div><footer><p>&copy; <a href='http://www.ala.org.au/'>Atlas of Living Australia 2012</a></p></footer></div></body></html>");
+            sbMetadata.append("<section><h3>Response Histogram (observed dissimilarity class):</h3><p> The Response Histogram plots the distribution of site pairs within each observed dissimilarity class. The final column in the dissimilarity class > 1 represents the number of site pairs that are totally dissimilar from each other. This chart provides an overview of potential bias in the distribution of the response data. </p><p><img src='plots/resphist.png'/></p></section><section><h3>Observed versus predicted compositional dissimilarity (raw data plot):</h3><p> The 'Raw data' scatter plot presents the Observed vs Predicted degree of compositional dissimilarity for a given model run. Each dot on the chart represents a site-pair. The line represents the perfect 1:1 fit. (Note that the scale and range of values on the x and y axes differ). </p><p> This chart provides a snapshot overview of the degree of scatter in the data. That is, how well the predicted compositional dissimilarity between site pairs matches the actual compositional dissimilarity present in each site pair. </p><p><img src='plots/obspredissim.png'/></p></section><section><h3>Observed compositional dissimilarity vs predicted ecological distance (link function applied to the raw data plot):</h3><p> The 'link function applied' scatter plot presents the Observed compositional dissimilarity vs Predicted ecological distance. Here, the link function has been applied to the predicted compositional dissimilarity to generate the predicted ecological distance. Each dot represents a site-pair. The line represents the perfect 1:1 fit. The scatter of points signifies noise in the relationship between the response and predictor variables. </p><p><img src='plots/dissimdist.png'/></p></section><section><h3>Predictor Histogram:</h3><p> The Predictor Histogram plots the relative contribution (sum of coefficient values) of each environmental gradient layer that is relevant to the model. The sum of coefficient values is a measure of the amount of predicted compositional dissimilarity between site pairs. </p><p> Predictor variables that contribute little to explaining variance in compositional dissimilarity between site pairs have low relative contribution values. Predictor variables that do not make any contribution to explaining variance in compositional dissimilarity between site pairs (i.e., all coefficient values are zero) are not shown. </p><p><img src='plots/predhist.png'/></p></section><section><h3>Fitted Functions:</h3><p> The model output presents the response (compositional turnover) predicted by variation in each predictor. The shape of the predictor is represented by three I-splines, the values of which are defined by the environmental data distribution: min, max and median (i.e., 0, 50 and 100th percentiles). The GDM model estimates the coefficients of the I-splines for each predictor. The coefficient provides an indication of the total amount of compositional turnover correlated with each value at the 0, 50 and 100th percentiles. The sum of these coefficient values is an indicator of the relative importance of each predictor to compositional turnover. </p><p> The coefficients are applied to the ecological distance from the minimum percentile for a predictor. These plots of fitted functions show the sort of monotonic transformations that will take place to a predictor to render it in GDM space. The relative maximum y values (sum of coefficient values) indicate the amount of influence that each predictor makes to the total GDM prediction. </p>" +
+                    "<p>" +
+                    images +
+                    "</p>" +
+                    "</section></div><footer><p>&copy; <a href='http://www.ala.org.au/'>Atlas of Living Australia 2012</a></p></footer></div></body></html>");
             sbMetadata.append("");
 
             File spFile = new File(outputdir + "gdm.html");
