@@ -21,6 +21,7 @@ public class ScatterplotDTO implements Serializable {
 
     String[] layers;
     String[] layernames;
+    String[] layerunits;
 
     String name;
 
@@ -41,7 +42,7 @@ public class ScatterplotDTO implements Serializable {
     public ScatterplotDTO() {
     }
 
-    public ScatterplotDTO(String fqs, String fbs, String fname, String bqs, String bbs, String bname, String name, String layer1, String layer1name, String layer2, String layer2name, int gridDivisions, String filterWkt) {
+    public ScatterplotDTO(String fqs, String fbs, String fname, String bqs, String bbs, String bname, String name, String layer1, String layer1name, String layer2, String layer2name, int gridDivisions, String filterWkt, String layer1units, String layer2units) {
         this.foregroundOccurrencesQs = fqs;
         this.foregroundOccurrencesBs = fbs;
         this.foregroundName = fname;
@@ -50,6 +51,7 @@ public class ScatterplotDTO implements Serializable {
 
         this.layers = new String[]{layer1, layer2};
         this.layernames = new String[]{layer1name, layer2name};
+        this.layerunits = new String[]{layer1units, layer2units};
 
         this.backgroundOccurrencesQs = bqs;
         this.backgroundOccurrencesBs = bbs;
@@ -95,6 +97,44 @@ public class ScatterplotDTO implements Serializable {
         }
 
         layernames[1] = layer2name;
+    }
+
+    @JsonIgnore
+    public String getLayer2units() {
+
+        if (layerunits != null) {
+            return layerunits[1];
+        } else {
+            return "";
+        }
+    }
+
+    @JsonIgnore
+    public void setLayer2units(String layer2units) {
+        if (layerunits == null) {
+            layerunits = new String[] { "", "" };
+        }
+
+        layerunits[1] = layer2units;
+    }
+
+    @JsonIgnore
+    public String getLayer1units() {
+
+        if (layerunits != null) {
+            return layerunits[0];
+        } else {
+            return "";
+        }
+    }
+
+    @JsonIgnore
+    public void setLayer1units(String layer1units) {
+        if (layerunits == null) {
+            layerunits = new String[] { "", "" };
+        }
+
+        layerunits[0] = layer1units;
     }
 
     @JsonIgnore
@@ -235,6 +275,14 @@ public class ScatterplotDTO implements Serializable {
         }
     }
 
+    public void setLayerunits(String[] layerunits) {
+        if (layernames != null && layerunits.length >= 2) {
+            this.layerunits = layerunits;
+        } else if (layerunits != null && layerunits.length >= 1) {
+            setLayerunits(layerunits[0]);
+        }
+    }
+
     public String[] getLayers() {
         return layers;
     }
@@ -247,6 +295,13 @@ public class ScatterplotDTO implements Serializable {
         return layernames;
     }
 
+    public String[] getLayerunits() {
+        if (layerunits == null || layerunits.length < 2) {
+            layerunits = new String [] {"",""};
+        }
+        return layerunits;
+    }
+
     public void setLayernames(String layernames) {
         try {
             CSVReader reader = new CSVReader(new StringReader(layernames));
@@ -254,6 +309,16 @@ public class ScatterplotDTO implements Serializable {
             this.layernames = reader.readNext();
         } catch (Exception e) {
             logger.error("failed to read layernames to string as CSV: " + layernames, e);
+        }
+    }
+
+    public void setLayerunits(String layerunits) {
+        try {
+            CSVReader reader = new CSVReader(new StringReader(layerunits));
+
+            this.layerunits = reader.readNext();
+        } catch (Exception e) {
+            logger.error("failed to read layerunits to string as CSV: " + layerunits, e);
         }
     }
 }

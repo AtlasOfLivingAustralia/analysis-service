@@ -223,15 +223,15 @@ public class Scatterplot {
             if (scatterplotStyleDTO.getHighlightWkt() != null && aaDataset != null) {
                 jChart = ChartFactory.createScatterPlot(
                         scatterplotDTO.getForegroundName()
-                        , scatterplotDTO.getLayernames()[col1]
-                        , scatterplotDTO.getLayernames()[col2]
+                        , scatterplotDTO.getLayernames()[col1] + " " + scatterplotDTO.getLayerunits()[col1]
+                        , scatterplotDTO.getLayernames()[col2] + " " + scatterplotDTO.getLayerunits()[col2]
                         , aaDataset
                         , PlotOrientation.HORIZONTAL, false, false, false);
             } else {
                 jChart = ChartFactory.createScatterPlot(
                         scatterplotDTO.getForegroundName()
-                        , scatterplotDTO.getLayernames()[col1]
-                        , scatterplotDTO.getLayernames()[col2]
+                        , scatterplotDTO.getLayernames()[col1] + " " + scatterplotDTO.getLayerunits()[col1]
+                        , scatterplotDTO.getLayernames()[col2] + " " + scatterplotDTO.getLayerunits()[col2]
                         , xyzDataset
                         , PlotOrientation.HORIZONTAL, false, false, false);
             }
@@ -307,11 +307,11 @@ public class Scatterplot {
 
                 addBlockPlot(plot,
                         scatterplotDTO.getLayers()[col1],
-                        scatterplotDTO.getLayernames()[col1],
+                        scatterplotDTO.getLayernames()[col1] + " " + scatterplotDTO.getLayerunits()[col1],
                         x.getLowerBound(),
                         x.getUpperBound(),
                         scatterplotDTO.getLayers()[col2],
-                        scatterplotDTO.getLayernames()[col2],
+                        scatterplotDTO.getLayernames()[col2] + " " + scatterplotDTO.getLayerunits()[col2],
                         y.getLowerBound(),
                         y.getUpperBound());
             }
