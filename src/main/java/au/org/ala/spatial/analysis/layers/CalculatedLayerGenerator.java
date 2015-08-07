@@ -1,5 +1,6 @@
 package au.org.ala.spatial.analysis.layers;
 
+import au.com.bytecode.opencsv.CSVReader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.util.Pair;
 
@@ -25,6 +26,8 @@ public abstract class CalculatedLayerGenerator {
     protected Map<String, Integer> _speciesCellCounts;
     protected Map<Pair<BigDecimal, BigDecimal>, List<String>> _cellSpecies;
     protected Map<Pair<BigDecimal, BigDecimal>, Long> _cellOccurrenceCounts;
+    protected Map<Pair<BigDecimal, BigDecimal>, Map<Integer, Integer>> _cellSpeciesOccurrenceCounts;
+    protected Map<String, Integer> _cellSpeciesOccurrenceCountsSpeciesIndex;
     protected BigDecimal _resolution;
 
     public CalculatedLayerGenerator(BigDecimal resolution) throws IOException {
@@ -70,6 +73,64 @@ public abstract class CalculatedLayerGenerator {
             long cellOccurrencesCount = Long.parseLong(tokens[2]);
             _cellOccurrenceCounts.put(new Pair(latitude, longitude), cellOccurrencesCount);
         }
+    }
+
+    // Read cell species lists into memory
+    protected void readCoordinateSpeciesFlatFile(File coordinateSpeciesFlatFile) throws IOException {
+        _cellSpeciesOccurrenceCounts = new HashMap<Pair<BigDecimal, BigDecimal>, Map<Integer, Integer>>();
+        _cellSpeciesOccurrenceCountsSpeciesIndex = new HashMap<String, Integer>();
+
+        CSVReader reader = new CSVReader(new BufferedReader(new FileReader(coordinateSpeciesFlatFile)));
+
+        int scale = 2;
+        if (_resolution.doubleValue() == 1.0) {
+            scale = 0;
+        }
+        if (_resolution.doubleValue() == 0.1) {
+            scale = 1;
+        }
+        if (_resolution.doubleValue() == 0.01) {
+            scale = 2;
+        }
+
+        String[] line;
+        int rowCount = 0;
+        while ((line = reader.readNext()) != null) {
+            rowCount++;
+            if (rowCount % 500000 == 0) {
+                System.out.println("reading row: " + rowCount);
+            }
+            try {
+                BigDecimal latitude = new BigDecimal(line[0]).setScale(2, scale);
+                BigDecimal longitude = new BigDecimal(line[1]).setScale(2, scale);
+                Pair p = new Pair(latitude, longitude);
+
+                //scientificName.p, taxonConceptId.p
+                String species = line[2] + '|' + line[3];
+                Integer sidx = _cellSpeciesOccurrenceCountsSpeciesIndex.get(species);
+                if (sidx == null) {
+                    sidx = _cellSpeciesOccurrenceCountsSpeciesIndex.size();
+                    _cellSpeciesOccurrenceCountsSpeciesIndex.put(species, sidx);
+                }
+
+                Map<Integer, Integer> m = _cellSpeciesOccurrenceCounts.get(p);
+                if (m == null) {
+                    m = new HashMap<Integer, Integer>();
+                }
+
+                Integer i = m.get(sidx);
+                if (i == null) {
+                    i = 0;
+                }
+                m.put(sidx, i + 1);
+
+                _cellSpeciesOccurrenceCounts.put(p, m);
+            } catch (NumberFormatException e) {
+                //ignore parse errors
+            }
+        }
+
+        reader.close();
     }
 
     protected int calculateNumberOfRows() {
