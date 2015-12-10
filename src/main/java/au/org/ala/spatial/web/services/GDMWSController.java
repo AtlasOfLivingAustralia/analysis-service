@@ -265,7 +265,24 @@ class Step1Thread extends Thread {
             if (resolution == null) {
                 resolution = "0.01";
             }
-            String cutDataPath = GridCutter.cut2(envlist.split(":"), resolution, region, filter, null);
+
+            //add layer display names to cutDataPath
+            String[] envnameslist = envlist.split(":");
+            //add layer display names to cutDataPath
+            String names = "";
+            for (int i = 0; i < envnameslist.length; i++) {
+                String[] name_displayname = envnameslist[i].split("\\|");
+                if (name_displayname.length > 1) {
+                    envnameslist[i] = name_displayname[0];
+                    names += "\n" + name_displayname[0] + "=" + name_displayname[1] + " (" + name_displayname[0] + ")";
+                } else {
+                    envnameslist[i] = name_displayname[0];
+                    names += "\n" + envnameslist[i] + "=" + envnameslist[i];
+                }
+            }
+            FileUtils.writeStringToFile(new File(outputdir + File.separator + "additional_properties.txt"), names);
+
+            String cutDataPath = GridCutter.cut2(envnameslist, resolution, region, filter, null);
 
             System.out.println("CUTDATAPATH: " + region + " " + cutDataPath);
 
@@ -275,7 +292,7 @@ class Step1Thread extends Thread {
             //DomainGrid.generate(cutDataPath, layers, region, outputdir);
 
             // 5. build parameters files for GDM
-            String params = generateStep1Paramfile(envlist.split(":"), cutDataPath, speciesFile, outputdir);
+            String params = generateStep1Paramfile(envnameslist, cutDataPath, speciesFile, outputdir);
 
             // 6. run GDM
             int exit = GDMWSController.runGDM(1, params);
@@ -315,19 +332,37 @@ class Step1Thread extends Thread {
 
     private String generateStep1Paramfile(String[] layers, String layersPath, String speciesfile, String outputdir) {
         try {
+
+            Properties additionalProperties = new Properties();
+            File apFile = new File(outputdir + File.separator + "additional_properties.txt");
+            if (apFile.exists()) {
+                try {
+                    additionalProperties.load(new FileReader(apFile));
+                } catch (Exception e) {
+                }
+            }
+
             LayerDAO layerDao = Client.getLayerDao();
             StringBuilder envLayers = new StringBuilder();
             StringBuilder useEnvLayers = new StringBuilder();
             StringBuilder predSpline = new StringBuilder();
             for (int i = 0; i < layers.length; i++) {
                 envLayers.append("EnvGrid").append(i + 1).append("=").append(layersPath).append(layers[i]).append("\n");
-                envLayers.append("EnvGridName").append(i + 1).append("=").append(layerDao.getLayerByName(layers[i]).getDisplayname()).append("\n");
+                envLayers.append("EnvGridName").append(i + 1).append("=").
+                        append(additionalProperties.getProperty(layers[i], layers[i])).append("\n");
                 useEnvLayers.append("UseEnv").append(i + 1).append("=1").append("\n");
                 predSpline.append("PredSpl").append(i + 1).append("=3").append("\n");
             }
 
             StringBuilder sbOut = new StringBuilder();
-            sbOut.append("[GDMODEL]").append("\n").append("WorkspacePath=" + outputdir).append("\n").append("RespDataType=RD_SitePlusSpecies").append("\n").append("PredDataType=ED_GridData").append("\n").append("Quantiles=QUANTS_FromData").append("\n").append("UseEuclidean=0").append("\n").append("UseSubSample=1").append("\n").append("NumSamples=10000").append("\n").append("[RESPONSE]").append("\n").append("InputData=" + speciesfile).append("\n").append("UseWeights=0").append("\n").append("[PREDICTORS]").append("\n").append("EuclSpl=3").append("\n").append("NumPredictors=" + layers.length).append("\n").append(envLayers).append("\n").append(useEnvLayers).append("\n").append(predSpline).append("\n");
+            sbOut.append("[GDMODEL]").append("\n").append("WorkspacePath=" + outputdir).append("\n").
+                    append("RespDataType=RD_SitePlusSpecies").append("\n").append("PredDataType=ED_GridData").
+                    append("\n").append("Quantiles=QUANTS_FromData").append("\n").append("UseEuclidean=0").
+                    append("\n").append("UseSubSample=1").append("\n").append("NumSamples=10000").append("\n").
+                    append("[RESPONSE]").append("\n").append("InputData=" + speciesfile).append("\n").
+                    append("UseWeights=0").append("\n").append("[PREDICTORS]").append("\n").append("EuclSpl=3").
+                    append("\n").append("NumPredictors=" + layers.length).append("\n").append(envLayers).
+                    append("\n").append(useEnvLayers).append("\n").append(predSpline).append("\n");
             PrintWriter spWriter = new PrintWriter(new BufferedWriter(new FileWriter(outputdir + "gdm_params.txt")));
             spWriter.write(sbOut.toString());
             spWriter.close();
@@ -411,7 +446,11 @@ class Step2Thread extends Thread {
 
             // 7.1 generate/display charts
             generateCharts(outputdir);
-            generateMetadata(envlist.split(":"), area, pid, outputdir);
+            String[] layers = envlist.split(":");
+            for (int i = 0; i < layers.length; i++) {
+                layers[i] = layers[i].split("\\|")[0];
+            }
+            generateMetadata(layers, area, pid, outputdir);
 
             // 7.2 generate/display transform grid
             processTransformedGrids(pid, outputdir);
@@ -786,10 +825,19 @@ class Step2Thread extends Thread {
             sbMetadata.append("<li>Assemblage:").append(name).append("</li>");
             sbMetadata.append("<li>Area:").append(area).append("</li>");
 
+            Properties additionalProperties = new Properties();
+            File apFile = new File(outputdir + File.separator + "additional_properties.txt");
+            if (apFile.exists()) {
+                try {
+                    additionalProperties.load(new FileReader(apFile));
+                } catch (Exception e) {
+                }
+            }
+
             sbMetadata.append("<li>Layers: <ul>");
             String images = "";
             for (i = 0; i < layers.length; i++) {
-                sbMetadata.append("<li>").append(layerDao.getLayerByName(layers[i]).getDisplayname()).append("</li>");
+                sbMetadata.append("<li>").append(additionalProperties.getProperty(layers[i], layers[i])).append("</li>");
                 images += "<img src='plots/" + layers[i] + ".png'/>";
             }
             sbMetadata.append("</li></ul></li></ul></section>");

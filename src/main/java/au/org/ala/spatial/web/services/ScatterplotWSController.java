@@ -35,17 +35,6 @@ public class ScatterplotWSController {
                  @ModelAttribute ScatterplotStyleDTO style,
                  HttpServletRequest req) {
 
-//        ScatterplotDTO desc = new ScatterplotDTO(
-//                "lsid%3Aurn%3Alsid%3Abiodiversity.org.au%3Aapni.taxon%3A257590",
-//                "http://biocache.ala.org.au/ws",
-//                "species",
-//                null,null,null,null
-//                ,"bioclim_bio1", "bioclim_bio1"
-//                ,"bioclim_bio2", "bioclim_bio2"
-//                ,20,null);
-//
-//        ScatterplotStyleDTO style = new ScatterplotStyleDTO();
-
         Scatterplot scat = new Scatterplot(desc, style, null);
 
         ScatterplotStore.addData(scat.getScatterplotDTO().getId(), scat);

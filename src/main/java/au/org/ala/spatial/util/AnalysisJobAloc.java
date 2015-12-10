@@ -18,6 +18,7 @@ import au.org.ala.layers.intersect.SimpleRegion;
 import au.org.ala.layers.util.LayerFilter;
 import au.org.ala.spatial.analysis.service.AlocServiceImpl;
 import au.org.ala.spatial.analysis.service.AlocSettings;
+import org.apache.commons.io.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -303,7 +304,22 @@ public class AnalysisJobAloc extends AnalysisJob {
             fDir.mkdir();
 
             String[] envnameslist = envlist.split(":");
+            //add layer display names to cutDataPath
+            String names = "";
+            for (int i = 0; i < envnameslist.length; i++) {
+                String[] name_displayname = envnameslist[i].split("\\|");
+                if (name_displayname.length > 1) {
+                    envnameslist[i] = name_displayname[0];
+                    names += "\n" + envnameslist[i] + "=" + name_displayname[1];
+                } else {
+                    envnameslist[i] = envnameslist[i];
+                    names += "\n" + envnameslist[i] + "=" + envnameslist[i];
+                }
+            }
+
             String cutDataPath = GridCutter.cut2(envnameslist, resolution, region, envelope, null);
+
+            FileUtils.writeStringToFile(new File(cutDataPath + File.separator + "additional_properties.txt"), names);
 
             AlocSettings msets = new AlocSettings();
             msets.setAlocPath(AlaspatialProperties.getAnalysisAlocCmd());

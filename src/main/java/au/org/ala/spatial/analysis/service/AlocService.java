@@ -23,6 +23,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Properties;
 
 /**
  * entry into running Aloc
@@ -261,6 +262,15 @@ public class AlocService {
         int numberOfThreads = Integer.parseInt(args[2]);
         String outputpath = args[3];
 
+        Properties additionalProperties = new Properties();
+        File apFile = new File(args[0] + File.separator + "additional_properties.txt");
+        if (apFile.exists()) {
+            try {
+                additionalProperties.load(new FileReader(apFile));
+            } catch (Exception e) {
+            }
+        }
+
         String filename = outputpath + File.separator + "aloc.png";
 
         String name = "aloc";
@@ -338,7 +348,10 @@ public class AlocService {
 
         Layer[] layers = new Layer[files.length];
         for (i = 0; i < files.length; i++) {
-            layers[i] = new Layer(files[i].getName(), files[i].getName(), "", "");
+            layers[i] = new Layer(files[i].getName(),
+                    additionalProperties.getProperty(files[i].getName().replace(".grd", ""),
+                            files[i].getName().replace(".grd", "")) + "(" + files[i].getName().replace(".grd", "") + ")",
+                    "", "");
         }
 
         Layer[] invariantLayers = new Layer[invariantFiles.length];
