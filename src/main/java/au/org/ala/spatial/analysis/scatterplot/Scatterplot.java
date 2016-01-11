@@ -293,8 +293,10 @@ public class Scatterplot {
             //add points background
             if (backgroundXyzDataset != null) {
                 int datasetCount = plot.getDatasetCount();
-                plot.setDataset(datasetCount, backgroundXyzDataset);
-                plot.setRenderer(datasetCount, getBackgroundRenderer());
+                if (datasetCount > 0 && backgroundXyzDataset.getSeriesCount() > 0 && backgroundXyzDataset.getItemCount(0) > 0) {
+                    plot.setDataset(datasetCount, backgroundXyzDataset);
+                    plot.setRenderer(datasetCount, getBackgroundRenderer());
+                }
             }
 
             //add block background
@@ -857,6 +859,11 @@ public class Scatterplot {
                     string = Occurrences.getOccurrences(scatterplotDTO.getForegroundOccurrencesQs(), scatterplotDTO.getForegroundOccurrencesBs(), fields);
                 } else {
                     string = Occurrences.getOccurrences(scatterplotDTO.getBackgroundOccurrencesQs(), scatterplotDTO.getBackgroundOccurrencesBs(), fields);
+                }
+
+                //handle no occurrences found
+                if (string.length() == 0) {
+                    string = "id,longitude,latitude";
                 }
 
                 CSVReader csvreader = new CSVReader(new StringReader(string));
