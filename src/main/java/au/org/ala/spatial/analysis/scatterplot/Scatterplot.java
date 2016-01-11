@@ -379,7 +379,7 @@ public class Scatterplot {
 
         sb.append("id,series");
         for (int j = 0; j < d[0].length; j++) {
-            sb.append(",\"").append(scatterplotDTO.getLayers()[j].replace("\"", "\"\"")).append("\"");
+            sb.append(",").append(scatterplotDTO.getLayernames()[j]);
         }
         if (scatterplotDTO.isEnvGrid()) {
             sb.append(",environmental envelope area (sq km)");
