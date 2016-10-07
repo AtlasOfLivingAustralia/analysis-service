@@ -21,9 +21,14 @@ import org.apache.commons.httpclient.methods.FileRequestEntity;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.RequestEntity;
+import org.six11.util.io.FileUtil;
+import org.six11.util.io.StreamUtil;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 /**
  * UploadSpatialResource helps with loading any dynamically generated spatial
@@ -55,46 +60,28 @@ public class UploadSpatialResource {
     public static String loadResource(String url, String extra, String username, String password, String resourcepath) {
         String output = "";
 
-        HttpClient client = new HttpClient();
-
-        client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-
-        File input = new File(resourcepath);
-
-        PutMethod put = new PutMethod(url);
-        put.setDoAuthentication(true);
-
-        //put.addRequestHeader("Content-type", "application/zip");
-
-        // Request content will be retrieved directly 
-        // from the input stream 
-        RequestEntity entity = new FileRequestEntity(input, "application/zip");
-        put.setRequestEntity(entity);
-
-        // Execute the request 
         try {
-            int result = client.executeMethod(put);
+            URL u = new URL(url);
+            HttpURLConnection connection = (HttpURLConnection) u.openConnection();
 
-            // get the status code
-            System.out.println("Response status code: " + result);
+            String userPassword = username + ":" + password;
+            String encoding = new sun.misc.BASE64Encoder().encode(userPassword.getBytes());
+            connection.setRequestProperty("Authorization", "Basic " + encoding);
 
-            // Display response
-            System.out.println("Response body: ");
-            System.out.println(put.getResponseBodyAsString());
+            connection.setRequestMethod("PUT");
+            connection.setRequestProperty("Content-Type", "application/zip");
+            connection.setRequestProperty("Content-Length", String.valueOf(new File(resourcepath).length()));
+            connection.setRequestProperty("Expect", "100-continue");
 
-            output += result;
-
+            connection.setDoOutput(true);
+            connection.getOutputStream().write(FileUtil.getBytesFromFile(new File(resourcepath)));
+            InputStream a = connection.getInputStream();
+            output = StreamUtil.inputStreamToString(a);
         } catch (Exception e) {
-            System.out.println("Something went wrong with UploadSpatialResource");
-            e.printStackTrace(System.out);
-        } finally {
-            // Release current connection to the connection pool once you are done 
-            put.releaseConnection();
+            e.printStackTrace();
         }
 
         return output;
-
-
     }
 
     public static String loadSld(String url, String extra, String username, String password, String resourcepath) {
