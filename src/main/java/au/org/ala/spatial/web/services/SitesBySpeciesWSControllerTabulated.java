@@ -64,7 +64,7 @@ public class SitesBySpeciesWSControllerTabulated {
 
             String currentPath = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "sitesbyspecies";
 
-            String speciesq = URLDecoder.decode(req.getParameter("q"), "UTF-8").replace("__", ".");
+            String speciesq = req.getParameter("q");
             String area = req.getParameter("area");
 
             String bs = req.getParameter("bs");

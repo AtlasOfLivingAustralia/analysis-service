@@ -47,7 +47,7 @@ public class SitesBySpeciesWSController {
 
             String currentPath = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "sitesbyspecies";
             String qname = URLDecoder.decode(req.getParameter("qname"), "UTF-8").replace("__", ".");
-            String speciesq = URLDecoder.decode(req.getParameter("speciesq"), "UTF-8").replace("__", ".");
+            String speciesq = req.getParameter("speciesq");
             String area = req.getParameter("area");
             String biocacheurl = URLDecoder.decode(req.getParameter("bs"), "UTF-8");
             double gridsize = Double.parseDouble(req.getParameter("gridsize"));
@@ -107,7 +107,7 @@ public class SitesBySpeciesWSController {
 
             String currentPath = AlaspatialProperties.getBaseOutputDir() + "output" + File.separator + "sitesbyspecies";
             String qname = URLDecoder.decode(req.getParameter("qname"), "UTF-8").replace("__", ".");
-            String speciesq = URLDecoder.decode(req.getParameter("speciesq"), "UTF-8").replace("__", ".");
+            String speciesq = req.getParameter("speciesq");
             String area = req.getParameter("area");
             String biocacheurl = URLDecoder.decode(req.getParameter("bs"), "UTF-8");
             double gridsize = Double.parseDouble(req.getParameter("gridsize"));
