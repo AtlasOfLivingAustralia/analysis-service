@@ -1,13 +1,14 @@
 sudo: false
 language: java
 jdk:
-- oraclejdk7
+- oraclejdk8
 branches:
   only:
   - master
 before_install:
-- mkdir -p ~/.m2; wget -q -O ~/.m2/settings.xml https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/travis_maven_settings.xml
-script: mvn clean install deploy
+  - mkdir -p ~/.m2; wget -q -O ~/.m2/settings.xml https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/travis_maven_settings.xml
+script:
+  - "[ \"${TRAVIS_PULL_REQUEST}\" = \"false\" ] && mvn -P travis clean install deploy -DskipTests || mvn -P travis clean install -DskipTests"
 env:
   global:
   - secure: Nza4kHKw97/JxLVlipGhRHieiLljyY3vdPNMBt3+lwmq/a/1JndvOu8WUI85h2na7fLh8meHpDfxkDzoEyspxCTfoap71aICzzungI475NORLo3PcuGcEyzLFLERnrMxVdRuqMGlMMyBTMzs3/zWzNVgNIhTXvyqqMRerijTtmo=
