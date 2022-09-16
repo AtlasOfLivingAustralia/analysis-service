@@ -117,7 +117,7 @@
 		<dependency>
 			<groupId>org.zkoss.zk</groupId>
 			<artifactId>zk</artifactId>
-			<version>3.6.3</version>
+			<version>8.6.4.2-Eval</version>
 		</dependency>
 		<dependency>
 			<groupId>org.zkoss.common</groupId>
